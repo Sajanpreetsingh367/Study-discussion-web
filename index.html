@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Study Discussion Club — Pro</title>
+
+<!-- React -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDwbIHTMWM_AQ-NlsdXGDzAfoC8Tf8lZiY",
+  authDomain:"study-discussion-club.firebaseapp.com",
+  projectId:"study-discussion-club",
+  storageBucket:"study-discussion-club.appspot.com",
+  messagingSenderId:"383378613377",
+  appId:"1:383378613377:web:3b932c6b42076352811980"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+window.F = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, doc, setDoc, addDoc, collection };
+console.log("Firebase ready", window.F);
+</script>
+
+<style>
+:root{
+  --glass: rgba(255,255,255,0.08);
+  --card-bg: rgba(255,255,255,0.96);
+  --accent: #6C63FF;
+  --accent2: #00C2A8;
+  --muted: #6b7280;
+  --radius: 14px;
+  --pad: 16px;
+}
+*{box-sizing:border-box}
+html,body,#root{height:100%;margin:0;font-family:Inter, "Segoe UI", Roboto, Arial, sans-serif;background:linear-gradient(180deg,#070724 0%, #2b0b5b 60%);color:#0b1020}
+.container{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px}
+.panel{width:100%;max-width:980px;border-radius:var(--radius);padding:28px;backdrop-filter:blur(6px);box-shadow:0 10px 30px rgba(2,6,23,0.6);background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.05)}
+.row{display:flex;gap:18px;align-items:center}
+.col{flex:1}
+.logo-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px}
+.logo{width:120px;height:120px;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:22px;box-shadow:0 8px 30px rgba(92,61,255,0.26);}
+.title{font-size:22px;font-weight:700;color:#fff;margin:0;text-align:center}
+.subtitle{font-size:13px;color:var(--muted);margin:0;text-align:center}
+.card{background:var(--card-bg);border-radius:12px;padding:18px;margin:12px 0;box-shadow:0 6px 18px rgba(12,18,40,0.25);}
+.field{display:flex;flex-direction:column;margin-bottom:12px}
+.input{padding:12px 14px;border-radius:10px;border:1px solid rgba(11,20,40,0.06);font-size:14px;outline:none;background:linear-gradient(180deg,#fff,#fcfcff);}
+.input:focus{box-shadow:0 6px 18px rgba(108,99,255,0.12);border-color:var(--accent)}
+.btn{display:inline-block;padding:12px 16px;border-radius:10px;border:0;cursor:pointer;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 8px 24px rgba(76,63,255,0.18);}
+.ghost{background:transparent;border:1px solid rgba(11,20,40,0.06);color:#111}
+.small{font-size:13px;color:var(--muted)}
+.center{text-align:center}
+.tile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:12px}
+.tile{background:linear-gradient(180deg,#fff,#f8f9ff);padding:14px;border-radius:12px;text-align:center;cursor:pointer;box-shadow:0 8px 20px rgba(8,10,20,0.08)}
+.tile.selected{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff}
+.notice{background:linear-gradient(180deg,#0b122633,#0b122633);padding:12px;border-radius:10px;color:#dbeafe;margin-top:12px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState } = React;
+const F = window.F;
+
+function App(){
+  const [screen,setScreen] = useState('welcome'); 
+  const [signup, setSignup] = useState({username:'', email:'', password:'', mobile:''});
+  const [login, setLogin] = useState({email:'', password:''});
+  const [exam, setExam] = useState(null);
+  const [code, setCode] = useState('');
+  const [manual, setManual] = useState({payer:'', upi:'', mob:''});
+
+  function toast(msg){ alert(msg); }
+
+  async function handleSignup(){
+    if(!signup.email || !signup.password){ toast('Enter email & password'); return; }
+    try{
+      const u = await F.createUserWithEmailAndPassword(F.auth, signup.email, signup.password);
+      await F.setDoc(F.doc(F.db,'users', u.user.uid), {...signup, createdAt:new Date().toISOString()});
+      toast('Signup success ✅'); setScreen('examlist');
+    }catch(e){ toast('Signup failed'); console.error(e); }
+  }
+
+  async function handleLogin(){
+    if(!login.email || !login.password){ toast('Enter credentials'); return; }
+    try{
+      await F.signInWithEmailAndPassword(F.auth, login.email, login.password);
+      toast('Login success ✅'); setScreen('examlist');
+    }catch(e){ toast('Login failed'); console.error(e); }
+  }
+
+  function checkCodeLocal(){
+    if(code.trim().toUpperCase() === 'BIGHIT'){
+      toast('Code accepted — Subscription unlocked ✅'); window.location.href='home.html';
+    } else toast('Invalid code ❌');
+  }
+
+  async function submitManual(){
+    if(!manual.payer || !manual.upi || !manual.mob){ toast('Fill all fields'); return; }
+    try{
+      await F.addDoc(F.collection(F.db,'manual_verifications'), {...manual, ts:new Date().toISOString()});
+      toast('Submitted for manual verification'); window.location.href='home.html';
+    }catch(e){ toast('Submit failed'); }
+  }
+
+  const Welcome = () => (
+    <div className="panel">
+      <div className="row">
+        <div className="logo-wrap col center">
+          <div className="logo">SDC</div>
+          <h3 className="title">Welcome to Study Discussion Club</h3>
+          <p className="subtitle">High-quality study material — curated & exam-focused</p>
+          <button className="btn" onClick={()=>setScreen('signup')} style={{marginTop:12}}>Get Started</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const Signup = () => (
+    <div className="panel">
+      <h3 style={{color:'#fff'}}>Signup</h3>
+      <div className="card">
+        {['username','email','password','mobile'].map((f)=>
+          <div className="field" key={f}>
+            <label className="small">{f.charAt(0).toUpperCase()+f.slice(1)}</label>
+            <input className="input" type={f==='password'?'password':'text'} placeholder={f} value={signup[f]} onChange={e=>setSignup({...signup,[f]:e.target.value})}/>
+          </div>
+        )}
+        <button className="btn" onClick={handleSignup}>Signup</button>
+        <div className="small" style={{marginTop:8}}>Already have account? <span style={{cursor:'pointer',color:'#6C63FF'}} onClick={()=>setScreen('login')}>Login</span></div>
+      </div>
+    </div>
+  );
+
+  const Login = () => (
+    <div className="panel">
+      <h3 style={{color:'#fff'}}>Login</h3>
+      <div className="card">
+        <div className="field"><label className="small">Email</label><input className="input" value={login.email} onChange={e=>setLogin({...login,email:e.target.value})}/></div>
+        <div className="field"><label className="small">Password</label><input className="input" type="password" value={login.password} onChange={e=>setLogin({...login,password:e.target.value})}/></div>
+        <button className="btn" onClick={handleLogin}>Login</button>
+        <div className="small" style={{marginTop:8}}>New user? <span style={{cursor:'pointer',color:'#6C63FF'}} onClick={()=>setScreen('signup')}>Signup</span></div>
+      </div>
+    </div>
+  );
+
+  const ExamList = () => (
+    <div className="panel">
+      <h3 style={{color:'#fff'}}>Select Exam</h3>
+      <div className="tile-grid">
+        {['UPSC','NEET','JUDICIARY','MATRIC'].map(e=>
+          <div key={e} className={`tile ${exam===e?'selected':''}`} onClick={()=>setExam(e)}>{e}</div>
+        )}
+      </div>
+      <button className="btn" style={{marginTop:12}} disabled={!exam} onClick={()=>setScreen('subscription')}>Next</button>
+    </div>
+  );
+
+  const Subscription = () => (
+    <div className="panel">
+      <h3 style={{color:'#fff'}}>Subscription</h3>
+      <div className="notice">
+        ✓ Current Affairs<br/>✓ Practice Questions<br/>✓ Interview Practice<br/>✓ Quick Books Summary<br/>✓ MindMaps
+      </div>
+      <button className="btn" style={{marginTop:12}} onClick={()=>alert('UPI payment opened')}>Pay Now (UPI)</button>
+      <div className="field" style={{marginTop:12}}>
+        <label className="small">Enter Code</label>
+        <input className="input" placeholder="BIGHIT" value={code} onChange={e=>setCode(e.target.value)}/>
+      </div>
+      <button className="btn ghost" onClick={checkCodeLocal}>Submit Code</button>
+      <div className="notice">If payment not received, fill manual verification form.</div>
+    </div>
+  );
+
+  const Manual = () => (
+    <div className="panel">
+      <h3 style={{color:'#fff'}}>Manual Verification</h3>
+      {['payer','upi','mob'].map(f=>
+        <div className="field" key={f}>
+          <label className="small">{f==='mob'?'Mobile No':f.charAt(0).toUpperCase()+f.slice(1)}</label>
+          <input className="input" placeholder={f} value={manual[f]} onChange={e=>setManual({...manual,[f]:e.target.value})}/>
+        </div>
+      )}
+      <button className="btn" onClick={submitManual}>Submit Verification</button>
+    </div>
+  );
+
+  if(screen==='welcome') return <Welcome/>;
+  if(screen==='signup') return <Signup/>;
+  if(screen==='login') return <Login/>;
+  if(screen==='examlist') return <ExamList/>;
+  if(screen==='subscription') return <Subscription/>;
+  if(screen==='manual') return <Manual/>;
+
+  return <div style={{color:'#fff'}}>Loading...</div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
