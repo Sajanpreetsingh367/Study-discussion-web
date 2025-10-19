@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Study Discussion Club - Home</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getFirestore, addDoc, collection } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDwbIHTMWM_AQ-NlsdXGDzAfoC8Tf8lZiY",
+  authDomain:"study-discussion-club.firebaseapp.com",
+  projectId:"study-discussion-club",
+  storageBucket:"study-discussion-club.appspot.com",
+  messagingSenderId:"383378613377",
+  appId:"1:383378613377:web:3b932c6b42076352811980"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+window.F = { db, addDoc, collection };
+</script>
+
+<style>
+body{margin:0;font-family:Segoe UI,Arial,sans-serif}
+.container{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:28px}
+.card{width:90%;max-width:760px;background:#fff;border-radius:8px;padding:12px;margin:10px 0;box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer}
+.btn{width:100%;padding:12px;border-radius:8px;border:0;color:#fff;background:#007AFF;font-weight:600;cursor:pointer;margin:8px 0}
+.notice{background:#f4f4f5;padding:10px;border-radius:8px;margin-top:10px;color:#222}
+.back{position:fixed;left:12px;top:12px;font-size:20px;cursor:pointer}
+.imgframe img{width:100%;border-radius:8px;display:block}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useEffect} = React;
+const F = window.F;
+
+function HomeApp(){
+  const [screen,setScreen]=useState('home');
+  const [sectionItems,setSectionItems]=useState([]);
+  const [sectionName,setSectionName]=useState('');
+  const [quizData,setQuizData]=useState([]);
+  const [quizAnswers,setQuizAnswers]=useState({});
+  const [contestPay,setContestPay]=useState(false);
+
+  const bg = {
+    home:'#B0E0E6', current:'#D3D3D3', practice:'#FFDAB9', mind:'#D2B48C', quick:'#FFFFE0',
+    interview:'#006400', vocab:'#FFDAB9', donation:'#87CEFA', sdc:'#A9A9A9', contest:'#90EE90', quiz:'#90EE90'
+  };
+
+  const sections=[
+    {name:'Current Affairs',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/current_affairs.json', key:'current'},
+    {name:'Practice Questions',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/practice_questions.json', key:'practice'},
+    {name:'MindMaps',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/mind_map.json', key:'mind'},
+    {name:'Interview Practice',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/interview_practise.json', key:'interview'},
+    {name:'Quick Books Revision',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/books_summary.json', key:'quick'},
+    {name:'SDC News',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/sdc_news.json', key:'sdc'},
+    {name:'Donation Bank',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/donation.json', key:'donation'},
+    {name:'Vocabulary',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/vacubaluray.json', key:'vocab'},
+    {name:'Contest',url:null,key:'contest'}
+  ];
+
+  async function fetchJSON(url){
+    try{
+      const r = await fetch(url);
+      const j = await r.json();
+      return j.images||j;
+    }catch(e){console.warn(e); return [];}
+  }
+
+  async function openSection(s){
+    if(s.key==='contest'){ setScreen('contest'); return; }
+    const imgs = await fetchJSON(s.url);
+    setSectionName(s.name);
+    setSectionItems(imgs.slice().reverse());
+    setScreen('section');
+  }
+
+  async function loadQuiz(){
+    const s = sections.find(x=>x.name==='Practice Questions');
+    const data = await fetchJSON(s.url);
+    setQuizData(data);
+    setScreen('quiz');
+  }
+
+  async function submitQuiz(){
+    try{
+      await F.addDoc(F.collection(F.db,'responses'), {quiz:quizAnswers, ts:new Date().toISOString()});
+      alert('Quiz submitted ✅'); setScreen('home'); setQuizAnswers({});
+    }catch(e){console.error(e); alert('Unable to save quiz');}
+  }
+
+  async function submitContest(upicode,mobile){
+    if(!upicode||!mobile){ alert('Fill all fields'); return; }
+    try{
+      await F.addDoc(F.collection(F.db,'responses'), {contest:true,upi:upicode,mobile,ts:new Date().toISOString()});
+      alert('Contest entry saved ✅'); setContestPay(true);
+    }catch(e){console.error(e); alert('Unable to save');}
+  }
+
+  if(screen==='home') return (
+    <div className="container" style={{background:bg.home}}>
+      <h2>Study Discussion Club</h2>
+      {sections.filter(s=>s.key!=='contest').map((s,i)=>
+        <div key={i} className="card" onClick={()=> s.name==='Practice Questions'?loadQuiz():openSection(s)}>
+          {s.name}
+        </div>
+      )}
+      <div className="card" onClick={()=>setScreen('contest')}>Contest</div>
+    </div>
+  );
+
+  if(screen==='section') return (
+    <div className="container" style={{background:bg[sections.find(s=>s.name===sectionName)?.
