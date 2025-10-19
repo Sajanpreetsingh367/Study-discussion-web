@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Current Affairs Screen</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  body {margin:0;font-family:Arial,sans-serif;}
+  .container {padding:20px; min-height:100vh; background:#FFD700; text-align:center; position:relative;}
+  .header {font-weight:bold; font-size:24px; padding:10px; border:2px solid #007AFF; border-radius:10px; margin-bottom:20px; display:inline-block;}
+  .back-button {position:absolute; top:20px; left:20px; font-size:24px; cursor:pointer;}
+  .image-frame {border:2px solid #007AFF; border-radius:10px; margin:10px auto; max-width:400px; overflow:hidden;}
+  .image-frame img {width:100%; display:block;}
+  .fallback {margin-top:20px; font-size:18px; color:#333;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+function CurrentAffairs({ goHome }) {
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    fetch("https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/current_affairs.json")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.images) {
+          setImages(data.images);
+        } else {
+          setError(true);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setError(true);
+        setLoading(false);
+      });
+  }, []);
+
+  return (
+    <div className="container">
+      <div className="back-button" onClick={goHome}>🔙</div>
+      <div className="header">Current Affairs</div>
+
+      {loading && <p className="fallback">Loading images...</p>}
+      {error && <p className="fallback">Failed to load data. Showing fallback images.</p>}
+
+      {images.map((src, index) => (
+        <div key={index} className="image-frame">
+          <img src={src} alt={`Current Affairs ${index+1}`} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function App() {
+  const [screen, setScreen] = useState("home");
+
+  if(screen === "home") {
+    return (
+      <div className="container" style={{background:"#90EE90"}}>
+        <h2>Study Discussion Club</h2>
+        <button onClick={()=>setScreen("current")}>Go to Current Affairs</button>
+      </div>
+    )
+  }
+
+  if(screen === "current") {
+    return <CurrentAffairs goHome={()=>setScreen("home")} />
+  }
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
