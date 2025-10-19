@@ -1,0 +1,121 @@
+<label className="small">Username</label>
+<input className="input" placeholder="Username" value={signup.username} onChange={e=>setSignup({...signup,username:e.target.value})}/>
+</div>
+<div className="field">
+<label className="small">Email</label>
+<input className="input" placeholder="Email" value={signup.email} onChange={e=>setSignup({...signup,email:e.target.value})}/>
+</div>
+<div className="field">
+<label className="small">Password</label>
+<input className="input" type="password" placeholder="Password" value={signup.password} onChange={e=>setSignup({...signup,password:e.target.value})}/>
+</div>
+<div className="field">
+<label className="small">Mobile No</label>
+<input className="input" placeholder="Mobile No" value={signup.mobile} onChange={e=>setSignup({...signup,mobile:e.target.value})}/>
+</div>
+<button className="btn" onClick={handleSignup}>Signup</button>
+</div>
+</div>
+);
+
+const Login = () => (
+<div className="panel">
+<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+  <div style={{display:'flex',gap:12,alignItems:'center'}}>
+    <div className="logo" style={{width:64,height:64,fontSize:18}}>SDC</div>
+    <div>
+      <div style={{fontWeight:800,color:'#fff'}}>Login</div>
+      <div className="small">Enter your credentials</div>
+    </div>
+  </div>
+  <div className="small" style={{opacity:0.9}}>New here? <span style={{color:'#dbeafe',cursor:'pointer'}} onClick={()=>setScreen('signup')}>Signup</span></div>
+</div>
+
+<div className="card">
+<div className="field">
+<label className="small">Email</label>
+<input className="input" placeholder="Email" value={login.email} onChange={e=>setLogin({...login,email:e.target.value})}/>
+</div>
+<div className="field">
+<label className="small">Password</label>
+<input className="input" type="password" placeholder="Password" value={login.password} onChange={e=>setLogin({...login,password:e.target.value})}/>
+</div>
+<button className="btn" onClick={handleLogin}>Login</button>
+</div>
+</div>
+);
+
+const ExamList = () => (
+<div className="panel">
+<h3 style={{color:'#fff',marginBottom:12}}>Select Your Exam</h3>
+<div className="tile-grid">
+  {['UPSC','NEET','JUDICIARY','MATRIC'].map(e=>
+    <div key={e} className={`tile ${exam===e?'selected':''}`} onClick={()=>setExam(e)}>{e}</div>
+  )}
+</div>
+<button className="btn" style={{marginTop:20}} disabled={!exam} onClick={()=>setScreen('subscription')}>Next</button>
+</div>
+);
+
+const Subscription = () => {
+  const [code,setCode] = useState('');
+  return (
+  <div className="panel">
+  <h3 style={{color:'#fff'}}>Subscription</h3>
+  <div className="notice">
+  ✓ Current Affairs<br/>
+  ✓ Practice Questions<br/>
+  ✓ Interview Practice<br/>
+  ✓ Quick Books Summary<br/>
+  ✓ MindMaps
+  </div>
+  <button className="btn" style={{marginTop:14}} onClick={handlePay}>Pay Now (UPI)</button>
+  <div className="field" style={{marginTop:12}}>
+    <label className="small">Enter Code</label>
+    <input className="input" placeholder="Enter code (e.g., BIGHIT)" value={code} onChange={e=>setCode(e.target.value)}/>
+  </div>
+  <button className="btn ghost" onClick={()=>checkCodeLocal(code)}>Submit Code</button>
+  <div className="notice">If payment not received, fill manual verification to unlock subscription.</div>
+  </div>
+  );
+};
+
+const ManualVerification = () => {
+  const [payer,setPayer] = useState(''); 
+  const [upi,setUpi] = useState(''); 
+  const [mob,setMob] = useState('');
+  return (
+  <div className="panel">
+  <h3 style={{color:'#fff'}}>Manual Verification</h3>
+  <div className="field">
+    <label className="small">Payer Name</label>
+    <input className="input" placeholder="Full Name" value={payer} onChange={e=>setPayer(e.target.value)}/>
+  </div>
+  <div className="field">
+    <label className="small">UPI ID</label>
+    <input className="input" placeholder="xxxx@upi" value={upi} onChange={e=>setUpi(e.target.value)}/>
+  </div>
+  <div className="field">
+    <label className="small">Mobile No</label>
+    <input className="input" placeholder="Mobile Number" value={mob} onChange={e=>setMob(e.target.value)}/>
+  </div>
+  <button className="btn" onClick={()=>submitManual(payer,upi,mob)}>Submit Verification</button>
+  </div>
+  );
+};
+
+// Render based on screen
+if(screen==='welcome') return <Welcome/>;
+if(screen==='signup') return <Signup/>;
+if(screen==='login') return <Login/>;
+if(screen==='examlist') return <ExamList/>;
+if(screen==='subscription') return <Subscription/>;
+if(screen==='manual') return <ManualVerification/>;
+
+return <div style={{color:'#fff'}}>Loading...</div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
