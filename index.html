@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Study Discussion Club</title>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDwbIHTMWM_AQ-NlsdXGDzAfoC8Tf8lZiY",
+  authDomain: "study-discussion-club.firebaseapp.com",
+  projectId: "study-discussion-club",
+  storageBucket: "study-discussion-club.appspot.com",
+  messagingSenderId: "383378613377",
+  appId: "1:383378613377:web:3b932c6b42076352811980"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+window._firebase = { db, collection, addDoc, onSnapshot };
+</script>
+
+<!-- Supabase -->
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+window._supabase = createClient(
+  "https://zkqegvyxmtwyznizuhjt.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprcWVndnl4bXR3eXpuaXp1aGp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MjkxMDYsImV4cCI6MjA3NjIwNTEwNn0.hC01DVzpgFg_cAVBs-Q6dalvUh1oU5OJ5NxkoEVY36o"
+);
+</script>
+
+<style>
+body{margin:0;font-family:'Segoe UI',Arial,sans-serif;}
+.container{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;min-height:100vh;}
+input,button{padding:10px;margin:5px;width:90%;max-width:400px;border-radius:8px;}
+button{font-weight:bold;color:white;border:none;cursor:pointer;}
+.back-button{position:absolute;top:20px;left:20px;cursor:pointer;font-size:20px;}
+.image-frame img{width:100%;border-radius:8px;border:2px solid #007AFF;margin-bottom:10px;}
+.next-btn{background-color:#007AFF;}
+.next-btn:disabled{background-color:gray;cursor:not-allowed;}
+.notice-box{background:#f0f0f0;padding:10px;border-radius:8px;margin:10px 0;}
+.exam-box{padding:10px;margin:5px;width:90%;max-width:400px;border-radius:8px;background:#90EE90;text-align:center;cursor:pointer;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+function App(){
+  const [screen,setScreen] = useState("welcome");
+  const [signupData,setSignupData] = useState({username:"",email:"",password:"",mobile:""});
+  const [quizAnswers,setQuizAnswers] = useState({});
+
+  const sections=[
+    {name:"Current Affairs",color:"#FFD700",url:"https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/current_affairs.json"},
+    {name:"Practice Questions",color:"#90EE90",url:"https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/practice_questions.json"},
+    {name:"Mind Maps",color:"#87CEFA",url:"https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/mind_map.json"},
+    {name:"Books Summary",color:"#FFB6C1",url:"https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/books_summary.json"},
+    {name:"Interview",color:"#FFA07A",url:"https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/interview_practise.json"},
+    {name:"Discussion",color:"#E6E6FA",url:"https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/sdc_news.json"},
+    {name:"Live Classes",color:"#006400",url:"https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/live_classes.json"},
+    {name:"Donation Bank",color:"#D3D3D3",url:"https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/donation.json"},
+    {name:"Vocabulary",color:"#FFE4B5",url:"https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/vacubaluray.json"},
+  ];
+
+  // -------------------- Screens --------------------
+  if(screen==="welcome") return(
+    <div className="container" style={{backgroundColor:"#90EE90"}}>
+      <h2>Welcome to Study Discussion Club</h2>
+      <button onClick={()=>setScreen("signup")}>Next</button>
+    </div>
+  );
+
+  if(screen==="signup") return(
+    <div className="container" style={{backgroundColor:"#89CFF0"}}>
+      <h2>Signup</h2>
+      {Object.keys(signupData).map(key=>
+        <input key={key} placeholder={key.toUpperCase()} type={key==="password"?"password":"text"} 
+        value={signupData[key]} onChange={e=>setSignupData({...signupData,[key]:e.target.value})}/>
+      )}
+      <button onClick={()=>{
+        if(Object.values(signupData).every(v=>v!=="")) setScreen("home");
+        else alert("Fill all fields")
+      }}>Signup</button>
+    </div>
+  );
+
+  if(screen==="home") return(
+    <div className="container" style={{backgroundColor:"#FFFFE0"}}>
+      <h2>Study Discussion Club</h2>
+      {sections.map((sec,i)=>
+        <div key={i} className="exam-box" onClick={()=>setScreen(`section-${i}`)}>{sec.name}</div>
+      )}
+      <div className="exam-box" style={{backgroundColor:"#FFA500"}} onClick={()=>setScreen("contest")}>Contest</div>
+    </div>
+  );
+
+  const sectionIndex = parseInt(screen.replace("section-",""));
+  if(!isNaN(sectionIndex) && sectionIndex >=0 && sectionIndex < sections.length){
+    return <StudySection section={sections[sectionIndex]} back={()=>setScreen("home")}/>
+  }
+
+  if(screen==="contest") return <ContestScreen back={()=>setScreen("home")}/>;
+  if(screen==="quiz") return <QuizScreen back={()=>setScreen("contest")} answers={quizAnswers} setAnswers={setQuizAnswers}/>
+
+  return null;
+}
+
+// -------------------- Components --------------------
+function StudySection({section,back}){
+  const [data,setData]=useState([]);
+  useEffect(()=>{
+    fetch(section.url)
+      .then(r=>r.json())
+      .then(j=>setData(j))
+      .catch(e=>console.log(e));
+  },[section.url]);
+  return(
+    <div className="container" style={{backgroundColor:section.color}}>
+      <div className="back-button" onClick={back}>🔙</div>
+      <h2>{section.name}</h2>
+      {data.map((item,i)=><div key={i} className="image-frame"><img src={item.image}/></div>)}
+    </div>
+  );
+}
+
+function ContestScreen({back}){
+  const [participants,setParticipants]=useState([]);
+  const [upiPaid,setUpiPaid]=useState(false);
+  const [manualVerified,setManualVerified]=useState(false);
+  const joinEnabled = upiPaid || manualVerified;
+
+  useEffect(()=>{
+    const { db, collection, onSnapshot } = window._firebase;
+    const unsub = onSnapshot(collection(db,"contest_participants"),snapshot=>{
+      setParticipants(snapshot.docs.map(doc=>doc.data().name));
+    });
+    return ()=>unsub();
+  },[]);
+
+  const payUPI = async ()=>{
+    alert("UPI Payment triggered");
+    setUpiPaid(true);
+    const { db, collection, addDoc } = window._firebase;
+    await addDoc(collection(db,"contest_participants"),{name:"You",paid:true});
+  }
+
+  const manualVerify = async ()=>{
+    alert("Manual verified");
+    setManualVerified(true);
+    const { db, collection, addDoc } = window._firebase;
+    await addDoc(collection(db,"contest_participants"),{name:"You",paid:true});
+  }
+
+  return(
+    <div className="container" style={{backgroundColor:"#FFE4B5"}}>
+      <div className="back-button" onClick={back}>🔙</div>
+      <h2>Contest</h2>
+      <div className="notice-box"><b>Participants:</b><ul>{participants.map((p,i)=><li key={i}>{p}</li>)}</ul></div>
+      <button onClick={payUPI} style={{backgroundColor:"#007700"}}>Pay Entry Fee ₹7</button>
+      {!upiPaid && !manualVerified && <button onClick={manualVerify} style={{backgroundColor:"#FFA500"}}>Manual Verification</button>}
+      <button onClick={()=>joinEnabled && setScreen("quiz")} disabled={!joinEnabled} className="next-btn">Join Quiz</button>
+      <div className="notice-box" style={{backgroundColor:"#800080",color:"white"}}>
+        Dear aspirants, contest will start once all participants have joined. Winners will be announced 15 days after contest start.
+      </div>
+    </div>
+  );
+}
+
+function QuizScreen({back,answers,setAnswers}){
+  const [questions,setQuestions]=useState([]);
+  const [current,setCurrent]=useState(0);
+  const [timer,setTimer]=useState(180);
+
+  useEffect(()=>{
+    fetch("https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/practice_questions.json")
+      .then(r=>r.json()).then(j=>setQuestions(j)).catch(e=>console.log(e));
+  },[]);
+
+  useEffect(()=>{
+    if(timer<=0)return;
+    const i=setInterval(()=>setTimer(t=>t-1),1000);
+    return ()=>clearInterval(i);
+  },[timer]);
+
+  if(questions.length===0) return <div className="container">Loading Quiz...</div>;
+  const q = questions[current];
+
+  const handleNext = async ()=>{
+    if(current<questions.length-1){setCurrent(current+1);}
+    else{
+      const supabase = window._supabase;
+      const name = prompt("Enter Name");
+      const email = prompt("Enter Email");
+      const mobile = prompt("Enter Mobile");
+      await supabase.from("users").insert([{name,email,mobile,questions:answers}]);
+      alert("Quiz submitted ✅");
+      back();
+    }
+  }
+
+  return(
+    <div className="container" style={{backgroundColor:"#FFFFE0"}}>
+      <div className="back-button" onClick={back}>🔙</div>
+      <h2>Contest Quiz</h2>
+      <div className="notice-box">Time Left: {Math.floor(timer/60)}:{("0"+(timer%60)).slice(-2)}</div>
+      <div className="image-frame"><img src={q.image}/></div>
+      {["a","b","c","d"].map(opt=>
+        <button key={opt} onClick={()=>setAnswers({...answers,[current]:opt})}>{q[opt]}</button>
+      )}
+      <button onClick={handleNext} className="next-btn">{current<questions.length-1?"Next":"Submit"}</button>
+    </div>
+  );
+}
+
+// -------------------- Mount --------------------
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
