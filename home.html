@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Study Discussion Club — Home</title>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getFirestore, addDoc, collection } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDwbIHTMWM_AQ-NlsdXGDzAfoC8Tf8lZiY",
+  authDomain:"study-discussion-club.firebaseapp.com",
+  projectId:"study-discussion-club",
+  storageBucket:"study-discussion-club.appspot.com",
+  messagingSenderId:"383378613377",
+  appId:"1:383378613377:web:3b932c6b42076352811980"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+window.F = { db, addDoc, collection };
+</script>
+
+<style>
+:root{
+  --primary:#6C63FF;
+  --secondary:#00C2A8;
+  --card-bg:rgba(255,255,255,0.95);
+  --radius:14px;
+  --pad:16px;
+  --muted:#6b7280;
+}
+*{box-sizing:border-box}
+html,body,#root{height:100%;margin:0;font-family:Inter, "Segoe UI", Roboto, Arial, sans-serif;background:linear-gradient(180deg,#070724 0%,#2b0b5b 70%);color:#fff}
+.container{min-height:100vh;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
+.logo{width:140px;height:140px;background:linear-gradient(135deg,var(--primary),var(--secondary));border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;box-shadow:0 10px 30px rgba(92,61,255,0.3);margin-bottom:16px}
+.header{text-align:center;margin-bottom:12px}
+.header h2{margin:0;font-size:28px;font-weight:700}
+.header p{margin:0;font-size:14px;color:var(--muted)}
+.card{width:90%;max-width:760px;background:var(--card-bg);border-radius:var(--radius);padding:18px;margin:10px 0;box-shadow:0 6px 20px rgba(0,0,0,0.2);cursor:pointer;transition:transform 0.2s}
+.card:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,0,0,0.25)}
+.btn{width:100%;padding:12px;border-radius:var(--radius);border:0;color:#fff;background:linear-gradient(90deg,var(--primary),var(--secondary));font-weight:700;cursor:pointer;margin:8px 0;transition:0.3s}
+.btn:hover{opacity:0.9}
+.notice{background:rgba(11,18,40,0.4);padding:12px;border-radius:10px;margin-top:12px;color:#dbeafe}
+.imgframe img{width:100%;border-radius:10px;display:block}
+.back{position:fixed;left:12px;top:12px;font-size:22px;cursor:pointer;color:#fff}
+@media(max-width:880px){.card{padding:14px}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useEffect} = React;
+const F = window.F;
+
+function HomeApp(){
+  const [screen,setScreen]=useState('home');
+  const [sectionItems,setSectionItems]=useState([]);
+  const [sectionName,setSectionName]=useState('');
+  const [quizData,setQuizData]=useState([]);
+  const [quizAnswers,setQuizAnswers]=useState({});
+  const [contestPay,setContestPay]=useState(false);
+
+  const sections=[
+    {name:'Current Affairs',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/current_affairs.json', key:'current'},
+    {name:'Practice Questions',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/practice_questions.json', key:'practice'},
+    {name:'MindMaps',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/mind_map.json', key:'mind'},
+    {name:'Interview Practice',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/interview_practise.json', key:'interview'},
+    {name:'Quick Books Revision',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/books_summary.json', key:'quick'},
+    {name:'SDC News',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/sdc_news.json', key:'sdc'},
+    {name:'Donation Bank',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/donation.json', key:'donation'},
+    {name:'Vocabulary',url:'https://raw.githubusercontent.com/Sajanpreetsingh367/Gill-Tarn-taran/main/vacubaluray.json', key:'vocab'},
+    {name:'Contest',url:null,key:'contest'}
+  ];
+
+  async function fetchJSON(url){
+    try{
+      const r = await fetch(url);
+      const j = await r.json();
+      return j.images||j;
+    }catch(e){console.warn(e); return [];}
+  }
+
+  async function openSection(s){
+    if(s.key==='contest'){ setScreen('contest'); return; }
+    const items = await fetchJSON(s.url);
+    setSectionName(s.name);
+    setSectionItems(items.slice().reverse());
+    setScreen('section');
+  }
+
+  async function submitContest(upi,mobile){
+    if(!upi||!mobile){ alert('Fill all fields'); return; }
+    try{
+      await F.addDoc(F.collection(F.db,'responses'), {contest:true,upi,mobile,ts:new Date().toISOString()});
+      alert('Contest entry saved ✅');
+      setContestPay(true);
+    }catch(e){console.error(e); alert('Unable to save');}
+  }
+
+  async function submitQuiz(){
+    try{
+      await F.addDoc(F.collection(F.db,'responses'), {quiz:quizAnswers, ts:new Date().toISOString()});
+      alert('Quiz submitted ✅');
+      setScreen('home'); 
+      setQuizAnswers({});
+    }catch(e){console.error(e); alert('Unable to save quiz');}
+  }
+
+  if(screen==='home') return (
+    <div className="container">
+      <div className="logo">SDC</div>
+      <div className="header">
+        <h2>Study Discussion Club</h2>
+        <p>Master-level curated content for competitive exams</p>
+      </div>
+      {sections.map((s,i)=>
+        <div key={i} className="card" onClick={()=>openSection(s)}>
+          {s.name}
+        </div>
+      )}
+      <div className="notice">Click Contest → Pay & Join → Quiz unlocks</div>
+    </div>
+  );
+
+  if(screen==='section') return (
+    <div className="container">
+      <div className="back" onClick={()=>setScreen('home')}>🔙</div>
+      <h2>{sectionName}</h2>
+      {sectionItems.map((item,i)=>
+        <div key={i} className="card imgframe"><img src={item}/></div>
+      )}
+    </div>
+  );
+
+  if(screen==='contest') return (
+    <div className="container">
+      <h2>Contest</h2>
+      <div className="notice">Participants: 100000 / 100000</div>
+      <input placeholder="UPI ID" id="contestUpi" className="input"/>
+      <input placeholder="Mobile No" id="contestMob" className="input" style={{marginTop:6}}/>
+      <button className="btn" onClick={()=>submitContest(
+        document.getElementById('contestUpi').value,
+        document.getElementById('contestMob').value
+      )}>Pay Now & Join</button>
+
+      {contestPay && <button className="btn" style={{marginTop:12}} onClick={()=>setScreen('quiz')}>Join Quiz</button>}
+    </div>
+  );
+
+  if(screen==='quiz') return (
+    <div className="container">
+      <h2>Contest Quiz</h2>
+      {quizData.length===0 ? <p>Loading...</p> :
+        quizData.map((q,i)=>(
+          <div key={i} className="card">
+            <div>{q.question}</div>
+            {['a','b','c','d'].map(k=>
+              <button className="btn" style={{margin:'4px'}} onClick={()=>setQuizAnswers({...quizAnswers,[i]:k})}>
+                {q[k]}
+              </button>
+            )}
+          </div>
+        ))
+      }
+      <button className="btn" onClick={submitQuiz}>Submit Quiz</button>
+    </div>
+  );
+
+  return <div className="container"><p>Loading...</p></div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<HomeApp/>);
+</script>
+</body>
+</html>
