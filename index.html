@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Study Discussion Club - Part 1</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, addDoc, collection, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDwbIHTMWM_AQ-NlsdXGDzAfoC8Tf8lZiY",
+  authDomain:"study-discussion-club.firebaseapp.com",
+  projectId:"study-discussion-club",
+  storageBucket:"study-discussion-club.appspot.com",
+  messagingSenderId:"383378613377",
+  appId:"1:383378613377:web:3b932c6b42076352811980"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+window.F = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, doc, setDoc, addDoc, collection, getDoc };
+</script>
+
+<style>
+body{margin:0;font-family:Segoe UI,Arial,sans-serif}
+.container{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px}
+.header{width:90%;max-width:760px;padding:14px;border-radius:10px;margin:12px 0;text-align:center}
+.inputs input{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #ccc}
+.btn{width:100%;padding:12px;border-radius:8px;border:0;color:#fff;background:#007AFF;font-weight:600;cursor:pointer;margin:8px 0}
+.card{width:90%;max-width:760px;background:#fff;border-radius:8px;padding:12px;margin:10px 0;box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer}
+.notice{background:#f4f4f5;padding:10px;border-radius:8px;margin-top:10px;color:#222}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState} = React;
+const F = window.F;
+
+function App(){
+  const [screen,setScreen]=useState('welcome');
+  const [signup,setSignup]=useState({username:'',email:'',password:'',mobile:''});
+  const [login,setLogin]=useState({email:'',password:''});
+  const [exam,setExam]=useState(null);
+  const [subActive,setSubActive]=useState(false);
+
+  const bg = {welcome:'#D8BFD8', signup:'#87CEFA', login:'#FFFFE0', exam:'#006400', subscription:'#90EE90'};
+
+  async function doSignup(){
+    if(!signup.email||!signup.password){ alert('Fill Email & Password'); return }
+    try{
+      const u = await F.createUserWithEmailAndPassword(F.auth, signup.email, signup.password);
+      await F.setDoc(F.doc(F.db,'users',u.user.uid), {...signup,createdAt:new Date().toISOString()});
+      alert('Signup success ✅'); setScreen('examlist');
+    }catch(e){ alert('Signup failed '+e.message) }
+  }
+
+  async function doLogin(){
+    try{
+      await F.signInWithEmailAndPassword(F.auth, login.email, login.password);
+      alert('Login success ✅'); setScreen('examlist');
+    }catch(e){ alert('Login failed '+e.message) }
+  }
+
+  async function checkCode(codeInput){
+    try{
+      const d = await F.getDoc(F.doc(F.db,'config','subscription'));
+      const backendCode = d.exists()?d.data().code:null;
+      if(codeInput===backendCode){ setSubActive(true); alert('Subscription unlocked ✅'); setScreen('home.html'); return }
+      alert('Invalid code ❌');
+    }catch(e){ console.warn(e) }
+  }
+
+  async function submitManual(payer,upi,mob){
+    if(!payer||!upi||!mob){ alert('Fill all fields'); return }
+    try{
+      await F.addDoc(F.collection(F.db,'manual_verifications'), {payer,upi,mob,ts:new Date().toISOString()});
+      alert('Manual verification submitted ✅'); setScreen('home.html');
+    }catch(e){ alert('Submission failed ❌') }
+  }
+
+  if(screen==='welcome') return (
+    <div className="container" style={{background:bg.welcome}}>
+      <div className="header center" style={{background:'#fff0',borderRadius:120,width:120,height:120,lineHeight:'120px'}}>Logo</div>
+      <div className="card" style={{background:'transparent',border:'none',color:'#111'}}>
+        <h2>Welcome to Study Discussion Club</h2>
+        <p>Developer by Sajan</p>
+        <button className="btn" onClick={()=>setScreen('signup')}>Next</button>
+      </div>
+    </div>
+  );
+
+  if(screen==='signup') return (
+    <div className="container" style={{background:bg.signup}}>
+      <div className="header card">
+        <h2>Signup</h2>
+        <div className="inputs">
+          <input placeholder="Username" value={signup.username} onChange={e=>setSignup({...signup,username:e.target.value})}/>
+          <input placeholder="Email" value={signup.email} onChange={e=>setSignup({...signup,email:e.target.value})}/>
+          <input placeholder="Password" type="password" value={signup.password} onChange={e=>setSignup({...signup,password:e.target.value})}/>
+          <input placeholder="Mobile No" value={signup.mobile} onChange={e=>setSignup({...signup,mobile:e.target.value})}/>
+        </div>
+        <button className="btn" onClick={doSignup}>Signup</button>
+        <p style={{cursor:'pointer',color:'#0057ff'}} onClick={()=>setScreen('login')}>Already have an account?</p>
+      </div>
+    </div>
+  );
+
+  if(screen==='login') return (
+    <div className="container" style={{background:bg.login}}>
+      <div className="header card">
+        <h2>Login</h2>
+        <input placeholder="Email" value={login.email} onChange={e=>setLogin({...login,email:e.target.value})}/>
+        <input placeholder="Password" type="password" value={login.password} onChange={e=>setLogin({...login,password:e.target.value})}/>
+        <button className="btn" onClick={doLogin}>Login</button>
+      </div>
+    </div>
+  );
+
+  if(screen==='examlist') return (
+    <div className="container" style={{background:bg.exam}}>
+      <h2>Exam List</h2>
+      {['UPSC','NEET','JUDICIARY','MATRIC'].map(e=>
+        <div key={e} className="card" style={{background:exam===e?'#555':'#fff',color:exam===e?'#fff':'#111'}} onClick={()=>setExam(e)}>{e}</div>
+      )}
+      <button className="btn" disabled={!exam} onClick={()=>setScreen('subscription')}>Next</button>
+    </div>
+  );
+
+  if(screen==='subscription') return (
+    <div className="container" style={{background:bg.subscription}}>
+      <h2>Subscription</h2>
+      <div className="notice">✓ Current Affairs<br/>✓ Practice Questions<br/>✓ Interview Practice<br/>✓ Quick Books Summary<br/>✓ MindMaps</div>
+      <button className="btn" onClick={()=>{
+        const upi="upi://pay?pa=demo@upi&pn=StudyClub&am=99&cu=INR";
+        window.location.href=upi;
+        setTimeout(()=>setScreen('manual'),60000);
+      }}>Pay Now</button>
+      <input placeholder="Enter Code (BIGHIT)" id="code"/>
+      <button className="btn" onClick={()=>checkCode(document.getElementById('code').value)}>Submit Code</button>
+      <div className="notice">If no payment, manual verification will activate subscription within 12 hours.</div>
+    </div>
+  );
+
+  if(screen==='manual') return (
+    <div className="container">
+      <h2>Manual Verification Form</h2>
+      <input placeholder="PAYER NAME" id="payer"/>
+      <input placeholder="UPI ID" id="upi"/>
+      <input placeholder="MOBILE NO" id="mob"/>
+      <button className="btn" onClick={()=>{
+        submitManual(
+          document.getElementById('payer').value,
+          document.getElementById('upi').value,
+          document.getElementById('mob').value
+        )
+      }}>Submit</button>
+      <div className="notice">Our team will verify your payment manually and enable your plan shortly.</div>
+    </div>
+  );
+
+  return null;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
