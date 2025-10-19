@@ -1,0 +1,179 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Study Discussion Club — Master UI</title><script src="https://unpkg.com/react@18/umd/react.development.js"></script><script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script><script src="https://unpkg.com/@babel/standalone/babel.min.js"></script><script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDwbIHTMWM_AQ-NlsdXGDzAfoC8Tf8lZiY",
+  authDomain:"study-discussion-club.firebaseapp.com",
+  projectId:"study-discussion-club",
+  storageBucket:"study-discussion-club.appspot.com",
+  messagingSenderId:"383378613377",
+  appId:"1:383378613377:web:3b932c6b42076352811980"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+window.F = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, doc, setDoc, addDoc, collection };
+</script><style>
+/* Full-screen master professional UI */
+:root{
+  --glass: rgba(255,255,255,0.08);
+  --card-bg: rgba(255,255,255,0.96);
+  --accent: #6C63FF;
+  --accent2: #00C2A8;
+  --muted: #6b7280;
+  --radius: 14px;
+  --pad: 16px;
+}
+*{box-sizing:border-box}
+html,body,#root{height:100%;margin:0;font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;background:linear-gradient(180deg,#070724 0%, #2b0b5b 60%);color:#fff;}
+body{overflow:hidden}
+.container{display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;height:100%;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.panel{width:100%;max-width:980px;border-radius:var(--radius);padding:28px;backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(2,6,23,0.6);background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.05);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.logo{width:160px;height:160px;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:28px;box-shadow:0 10px 40px rgba(92,61,255,0.26);margin-bottom:24px}
+.field{display:flex;flex-direction:column;margin-bottom:16px;width:100%}
+.input{padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);font-size:16px;outline:none;background:linear-gradient(180deg,#fff,#fcfcff)}
+.input:focus{box-shadow:0 6px 18px rgba(108,99,255,0.12);border-color:var(--accent)}
+.btn{display:inline-block;padding:14px 20px;border-radius:12px;border:0;cursor:pointer;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 10px 30px rgba(76,63,255,0.18);margin-top:12px;width:100%}
+.center{text-align:center}
+.notice{background:rgba(255,255,255,0.05);padding:12px;border-radius:12px;color:#dbeafe;margin-top:12px;width:100%;text-align:center;font-size:14px}
+</style></head>
+<body>
+<div id="root"></div><script type="text/babel">
+const {useState,useEffect} = React;
+const F = window.F;
+
+function App(){
+  const [screen,setScreen] = useState('welcome');
+  const [signup,setSignup] = useState({username:'',email:'',password:'',mobile:''});
+  const [login,setLogin] = useState({email:'',password:''});
+  const [exam,setExam] = useState(null);
+
+  function toast(msg){alert(msg)}
+
+  async function handleSignup(){
+    if(!signup.email || !signup.password){toast('Fill Email & Password'); return;}
+    try{
+      const u = await F.createUserWithEmailAndPassword(F.auth,signup.email,signup.password);
+      await F.setDoc(F.doc(F.db,'users',u.user.uid),{...signup,createdAt:new Date().toISOString()});
+      toast('Signup success');
+      setScreen('examlist');
+    }catch(e){console.error(e); toast('Signup failed '+e.message)}
+  }
+
+  async function handleLogin(){
+    if(!login.email || !login.password){toast('Fill Email & Password'); return;}
+    try{
+      await F.signInWithEmailAndPassword(F.auth,login.email,login.password);
+      toast('Login success');
+      setScreen('examlist');
+    }catch(e){console.error(e); toast('Login failed '+e.message)}
+  }
+
+  function checkCodeLocal(input){
+    if(!input){toast('Enter code'); return;}
+    if(input.trim().toUpperCase()==='BIGHIT'){toast('Code accepted'); window.location.href='home.html';}
+    else toast('Invalid code');
+  }
+
+  async function submitManual(payer,upi,mob){
+    if(!payer||!upi||!mob){toast('Fill all fields'); return;}
+    try{
+      await F.addDoc(F.collection(F.db,'manual_verifications'),{payer,upi,mob,ts:new Date().toISOString()});
+      toast('Submitted for manual verification');
+      window.location.href='home.html';
+    }catch(e){toast('Unable to submit');}
+  }
+
+  const Welcome = ()=>(
+    <div className="container">
+      <div className="logo">SDC</div>
+      <div className="panel">
+        <h2 className="center">Welcome to Study Discussion Club</h2>
+        <p className="center" style={{marginBottom:24}}>High-quality exam prep — UPSC & competitive exams</p>
+        <button className="btn" onClick={()=>setScreen('signup')}>Create Account</button>
+        <button className="btn" style={{marginTop:12,background:'#fff',color:'#000'}} onClick={()=>setScreen('login')}>Login</button>
+      </div>
+    </div>
+  );
+
+  const Signup = ()=>(
+    <div className="container">
+      <div className="panel">
+        <h2 className="center">Signup</h2>
+        <div className="field"><label>Username</label><input className="input" value={signup.username} onChange={e=>setSignup({...signup,username:e.target.value})}/></div>
+        <div className="field"><label>Email</label><input className="input" value={signup.email} onChange={e=>setSignup({...signup,email:e.target.value})}/></div>
+        <div className="field"><label>Password</label><input className="input" type="password" value={signup.password} onChange={e=>setSignup({...signup,password:e.target.value})}/></div>
+        <div className="field"><label>Mobile</label><input className="input" value={signup.mobile} onChange={e=>setSignup({...signup,mobile:e.target.value})}/></div>
+        <button className="btn" onClick={handleSignup}>Signup</button>
+        <div className="notice">Already have account? <span style={{cursor:'pointer',textDecoration:'underline'}} onClick={()=>setScreen('login')}>Login</span></div>
+      </div>
+    </div>
+  );
+
+  const Login = ()=>(
+    <div className="container">
+      <div className="panel">
+        <h2 className="center">Login</h2>
+        <div className="field"><label>Email</label><input className="input" value={login.email} onChange={e=>setLogin({...login,email:e.target.value})}/></div>
+        <div className="field"><label>Password</label><input className="input" type="password" value={login.password} onChange={e=>setLogin({...login,password:e.target.value})}/></div>
+        <button className="btn" onClick={handleLogin}>Login</button>
+        <div className="notice">New user? <span style={{cursor:'pointer',textDecoration:'underline'}} onClick={()=>setScreen('signup')}>Signup</span></div>
+      </div>
+    </div>
+  );
+
+  const ExamList = ()=>(
+    <div className="container">
+      <div className="panel">
+        <h2 className="center">Select Exam</h2>
+        <div style={{display:'flex',flexWrap:'wrap',gap:12,justifyContent:'center',marginTop:12}}>
+          {['UPSC','NEET','JUDICIARY','MATRIC'].map(e=><div key={e} className="btn" style={{width:140}} onClick={()=>setExam(e)}>{e}</div>)}
+        </div>
+        <button className="btn" style={{marginTop:20}} disabled={!exam} onClick={()=>setScreen('subscription')}>Next</button>
+      </div>
+    </div>
+  );
+
+  const Subscription = ()=>(
+    <div className="container">
+      <div className="panel">
+        <h2 className="center">Subscription</h2>
+        <div className="notice">✓ Current Affairs<br/>✓ Practice Questions<br/>✓ Interview Practice<br/>✓ Quick Books Summary<br/>✓ MindMaps</div>
+        <button className="btn" onClick={()=>{window.location.href='upi://pay?pa=demo@upi&pn=StudyClub&am=99&cu=INR';}}>Pay Now</button>
+        <div className="field" style={{marginTop:12}}><label>Code</label><input className="input" placeholder="Enter BIGHIT" onBlur={e=>checkCodeLocal(e.target.value)}/></div>
+        <div className="notice">Manual verification will activate subscription if payment not received.</div>
+      </div>
+    </div>
+  );
+
+  const ManualVerification = ()=>(
+    <div className="container">
+      <div className="panel">
+        <h2 className="center">Manual Verification</h2>
+        <div className="field"><label>Payer Name</label><input className="input" onChange={e=>setSignup({...signup,username:e.target.value})}/></div>
+        <div className="field"><label>UPI ID</label><input className="input" onChange={e=>setSignup({...signup,email:e.target.value})}/></div>
+        <div className="field"><label>Mobile</label><input className="input" onChange={e=>setSignup({...signup,mobile:e.target.value})}/></div>
+        <button className="btn" onClick={()=>submitManual(signup.username,signup.email,signup.mobile)}>Submit Verification</button>
+      </div>
+    </div>
+  );
+
+  if(screen==='welcome') return <Welcome/>;
+  if(screen==='signup') return <Signup/>;
+  if(screen==='login') return <Login/>;
+  if(screen==='examlist') return <ExamList/>;
+  if(screen==='subscription') return <Subscription/>;
+  if(screen==='manual') return <ManualVerification/>;
+  return <div className="center">Loading...</div>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body>
+</html>
