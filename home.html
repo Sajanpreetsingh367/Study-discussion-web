@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SDC — Home</title>
+
+<!-- React & Babel -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"YOUR_API_KEY",
+  authDomain:"YOUR_AUTH_DOMAIN",
+  projectId:"YOUR_PROJECT_ID",
+  storageBucket:"YOUR_STORAGE_BUCKET",
+  messagingSenderId:"YOUR_MSG_SENDER",
+  appId:"YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+window.F = { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs };
+</script>
+
+<style>
+:root{
+  --accent:#6C63FF;
+  --accent2:#00C2A8;
+  --glass:rgba(255,255,255,0.08);
+  --card:#ffffffcc;
+  --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Inter,Arial,sans-serif;}
+html,body,#root{height:100%;width:100%;background:linear-gradient(160deg,#070724,#2b0b5b);}
+.container{height:100%;width:100%;display:flex;flex-direction:column;align-items:center;padding:20px;overflow:auto;}
+.header{width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;color:#fff;}
+.header h1{font-size:26px;font-weight:800;}
+.header .status{font-size:14px;color:#ccc;}
+.panel{width:100%;max-width:980px;background:var(--glass);backdrop-filter:blur(12px);border-radius:var(--radius);padding:24px;margin-bottom:20px;box-shadow:0 12px 28px rgba(0,0,0,0.6);}
+.tile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;}
+.tile{background:linear-gradient(180deg,#fff,#f8f9ff);padding:16px;border-radius:var(--radius);text-align:center;font-weight:600;cursor:pointer;box-shadow:0 8px 18px rgba(0,0,0,0.15);}
+.tile:hover{transform:scale(1.05);transition:0.2s;}
+.tile.selected{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:20px;box-shadow:0 8px 20px rgba(0,0,0,0.15);}
+textarea.input{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,0.3);padding:12px;resize:none;font-size:14px;background:rgba(255,255,255,0.9);}
+textarea.input:focus{border-color:var(--accent);box-shadow:0 6px 18px rgba(108,99,255,0.2);}
+.btn{padding:12px 16px;border-radius:12px;border:none;font-weight:700;color:#fff;cursor:pointer;background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 8px 24px rgba(76,63,255,0.2);margin-top:10px;width:100%;}
+@media(max-width:900px){.panel{padding:16px;margin:0 10px;}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useEffect} = React;
+const F = window.F;
+
+function toast(msg){alert(msg);}
+
+function HomeApp(){
+  const [user,setUser] = useState(null);
+  const [subscription,setSubscription]=useState(false);
+  const [selectedExam,setSelectedExam]=useState(null);
+  const [discussion,setDiscussion]=useState([]);
+  const [message,setMessage]=useState('');
+
+  useEffect(()=>{
+    F.onAuthStateChanged(F.auth,u=>{
+      if(!u){window.location.href='index.html'; return;}
+      setUser(u);
+      checkSubscription(u.uid);
+      fetchDiscussion();
+    })
+  },[]);
+
+  async function checkSubscription(uid){
+    const docRef = F.doc(F.db,'users',uid);
+    const docSnap = await F.getDoc(docRef);
+    if(docSnap.exists()){
+      setSubscription(docSnap.data().subscriptionActive || false);
+    }
+  }
+
+  async function fetchDiscussion(){
+    const coll = F.collection(F.db,'discussion');
+    const snap = await F.getDocs(coll);
+    const msgs = snap.docs.map(d=>d.data());
+    setDiscussion(msgs);
+  }
+
+  async function postMessage(){
+    if(!message) return;
+    await F.addDoc(F.collection(F.db,'discussion'),{user:user.email,msg:message,ts:new Date().toISOString()});
+    setMessage('');
+    fetchDiscussion();
+  }
+
+  if(!user) return <div style={{color:'#fff'}}>Loading...</div>;
+
+  return (
+    <div className="container">
+      <div className="header">
+        <h1>Welcome {user.email}</h1>
+        <div className="status">{subscription?'Subscription Active':'Subscription Inactive'}</div>
+      </div>
+
+      {/* Exam Tiles */}
+      <div className="panel">
+        <h2 style={{color:'#fff'}}>Select Exam / Contest</h2>
+        <div className="tile-grid">
+          {['UPSC','NEET','JUDICIARY','BOARD CLASSES','BUSINESS'].map(e=>
+            <div key={e} className={`tile ${selectedExam===e?'selected':''}`} onClick={()=>setSelectedExam(e)}>{e}</div>
+          )}
+        </div>
+      </div>
+
+      {/* Discussion / Chat */}
+      <div className="panel">
+        <h2 style={{color:'#fff'}}>Discussion Board</h2>
+        <div className="card" style={{maxHeight:'300px',overflowY:'auto'}}>
+          {discussion.length===0 ? <p style={{color:'#fff'}}>No discussions yet</p> :
+            discussion.map((d,i)=><div key={i}><b>{d.user}</b>: {d.msg}</div>)
+          }
+        </div>
+        <textarea className="input" placeholder="Type message..." rows="3" value={message} onChange={e=>setMessage(e.target.value)}></textarea>
+        <button className="btn" onClick={postMessage}>Send</button>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<HomeApp/>);
+</script>
+</body>
+</html>
