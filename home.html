@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Study Discussion Club — Home</title>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDwbIHTMWM_AQ-NlsdXGDzAfoC8Tf8lZiY",
+  authDomain:"study-discussion-club.firebaseapp.com",
+  projectId:"study-discussion-club",
+  storageBucket:"study-discussion-club.appspot.com",
+  messagingSenderId:"383378613377",
+  appId:"1:383378613377:web:3b932c6b42076352811980"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+window.F = {auth, db, doc, getDoc, addDoc, collection};
+</script>
+
+<style>
+html,body,#root{height:100%;margin:0;padding:0;font-family:"Poppins",sans-serif;background:radial-gradient(circle at 50% 20%,#1a1a3f 0%,#000 95%);overflow:hidden;color:white;}
+*{box-sizing:border-box;}
+.centerBox{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;height:100vh;width:100vw;padding:20px;transition:all .5s ease;}
+.card{background:rgba(255,255,255,0.08);backdrop-filter:blur(20px);border-radius:20px;padding:24px;margin:12px 0;width:90%;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,0.5);}
+.btn{width:100%;padding:12px;margin-top:14px;border:none;border-radius:10px;font-weight:700;font-size:15px;color:#fff;background:linear-gradient(90deg,#6C63FF,#00C2A8);box-shadow:0 4px 20px rgba(108,99,255,0.4);cursor:pointer;}
+.btn:active{transform:scale(0.98);}
+.input{width:100%;padding:12px 14px;margin-top:8px;border:none;border-radius:10px;font-size:15px;color:#fff;background:rgba(255,255,255,0.1);}
+.input:focus{outline:none;box-shadow:0 0 0 2px #00C2A8 inset;}
+.title{font-size:22px;font-weight:700;margin-bottom:10px;}
+.subtitle{font-size:14px;color:#c7c7c7;margin-bottom:14px;}
+.notice{background:rgba(255,255,255,0.05);padding:14px;border-radius:12px;color:#dbeafe;margin-top:14px;text-align:left;font-size:13px;line-height:1.5;}
+.tileList{display:flex;flex-direction:column;gap:12px;width:100%;max-width:340px;margin-top:10px;}
+.tile{background:rgba(255,255,255,0.08);padding:14px;border-radius:12px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,0.3);text-align:center;}
+.tile.selected{background:linear-gradient(90deg,#6C63FF,#00C2A8);}
+.expiry{font-size:13px;color:#a1a1aa;margin-top:6px;}
+.section-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;width:100%;max-width:420px;margin-top:20px;}
+.section-tile{background:rgba(255,255,255,0.08);border-radius:14px;padding:18px;text-align:center;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,0.3);}
+.backBtn{position:absolute;left:20px;top:20px;font-size:22px;cursor:pointer;color:#00C2A8;}
+.imageBox{margin-top:80px;width:90%;max-width:420px;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.5);}
+.imageBox img{width:100%;display:block;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useEffect}=React;
+const F=window.F;
+
+function HomeApp(){
+  const exams=["UPSC","NEET","NDA","Business"];
+  const [screen,setScreen]=useState("examlist");
+  const [selectedExam,setSelectedExam]=useState("");
+  const [subscription,setSubscription]=useState({active:false,expiry:""});
+  const [manualSent,setManualSent]=useState(false);
+  const [section,setSection]=useState("");
+
+  function handlePay(){
+    const upi="upi://pay?pa=demo@upi&pn=SDC&am=85&cu=INR";
+    window.location.href=upi;
+    setTimeout(()=>setScreen("manual"),60000);
+  }
+  function handleCodeCheck(){
+    setSubscription({active:true,expiry:"31 Dec 2025"});
+    setScreen("home");
+  }
+
+  async function submitManual(payer,upi,mobile){
+    if(!payer||!upi||!mobile) return alert("Fill all fields");
+    try{
+      await F.addDoc(F.collection(F.db,"manual_verifications"),{payer,upi,mobile,ts:new Date().toISOString()});
+      setManualSent(true);
+      alert("Manual verification submitted — our team will verify soon.");
+    }catch(e){alert("Error submitting form");}
+  }
+
+  if(screen==="examlist")
+  return(
+    <div className="centerBox">
+      <div className="title">Select Your Exam</div>
+      <div className="tileList">
+        {exams.map(ex=>
+          <div key={ex} className={`tile ${selectedExam===ex?'selected':''}`} onClick={()=>setSelectedExam(ex)}>{ex}</div>
+        )}
+      </div>
+      <button className="btn" disabled={!selectedExam} onClick={()=>setScreen("subscription")}>Next</button>
+    </div>
+  );
+
+  if(screen==="subscription")
+  return(
+    <div className="centerBox">
+      <div className="card">
+        <div className="title">Subscription Plans</div>
+        <div className="subtitle">Unlock all premium content</div>
+        {exams.map(ex=>
+          <div key={ex} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+            <span>{ex}</span>
+            <span>✔ ₹17</span>
+          </div>
+        )}
+        <button className="btn" onClick={handlePay}>Pay Now</button>
+        <input className="input" placeholder="Enter Code (optional)" id="code"/>
+        <button className="btn" style={{marginTop:10}} onClick={handleCodeCheck}>Enter</button>
+        <div className="notice">
+          Dear user, if your payment response is not received within 1 minute, you will be redirected to the Manual Verification Form. Please submit your details there; our team will verify and activate your subscription.
+        </div>
+      </div>
+    </div>
+  );
+
+  if(screen==="manual")
+  return(
+    <div className="centerBox">
+      <div className="card">
+        <div className="title">Manual Verification Form</div>
+        <input className="input" placeholder="Payer Name" id="payer"/>
+        <input className="input" placeholder="UPI ID" id="upi"/>
+        <input className="input" placeholder="Mobile Number" id="mobile"/>
+        <button className="btn" onClick={()=>{
+          const p=document.getElementById("payer").value;
+          const u=document.getElementById("upi").value;
+          const m=document.getElementById("mobile").value;
+          submitManual(p,u,m);
+        }}>Submit</button>
+      </div>
+    </div>
+  );
+
+  if(screen==="home" && subscription.active)
+  return(
+    <div className="centerBox">
+      <div style={{position:"relative",width:"100%",maxWidth:"420px"}}>
+        <div className="title">{selectedExam}</div>
+        <div className="expiry">Subscription active — Expiry: {subscription.expiry}</div>
+      </div>
+      <div className="section-grid">
+        {["Current Affairs","Practice Questions","Quick Books","Revision","Interview","Mind Maps"].map(sec=>
+          <div key={sec} className="section-tile" onClick={()=>{setSection(sec);setScreen("section");}}>{sec}</div>
+        )}
+      </div>
+    </div>
+  );
+
+  if(screen==="section")
+  return(
+    <div className="centerBox">
+      <div className="backBtn" onClick={()=>setScreen("home")}>🔙</div>
+      <div className="title">{section}</div>
+      <div className="imageBox">
+        <img src={`https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/${section.replace(/\s+/g,'_')}.json`} alt={section}/>
+      </div>
+    </div>
+  );
+
+  return <div className="centerBox"><div>Loading...</div></div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<HomeApp/>);
+</script>
+</body>
+</html>
