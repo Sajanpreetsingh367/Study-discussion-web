@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Study Discussion Club — Home</title>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDwbIHTMWM_AQ-NlsdXGDzAfoC8Tf8lZiY",
+  authDomain:"study-discussion-club.firebaseapp.com",
+  projectId:"study-discussion-club",
+  storageBucket:"study-discussion-club.appspot.com",
+  messagingSenderId:"383378613377",
+  appId:"1:383378613377:web:3b932c6b42076352811980"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+window.F = { db, collection, addDoc, onSnapshot };
+</script>
+
+<!-- Supabase -->
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+window.SB = createClient(
+  "https://zkqegvyxmtwyznizuhjt.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprcWVndnl4bXR3eXpuaXp1aGp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MjkxMDYsImV4cCI6MjA3NjIwNTEwNn0.hC01DVzpgFg_cAVBs-Q6dalvUh1oU5OJ5NxkoEVY36o"
+);
+</script>
+
+<style>
+html,body,#root{height:100%;margin:0;padding:0;font-family:"Poppins",sans-serif;background:radial-gradient(circle at 50% 20%,#2a2a72 0%,#000 90%);overflow:auto;color:white;}
+*{box-sizing:border-box;}
+.centerBox{display:flex;flex-direction:column;align-items:center;text-align:center;padding:20px;}
+.card{background:rgba(255,255,255,0.1);backdrop-filter:blur(20px);border-radius:20px;padding:20px;margin:12px 0;width:90%;max-width:400px;box-shadow:0 10px 40px rgba(0,0,0,0.5);}
+.btn{width:100%;padding:12px;margin-top:12px;border:none;border-radius:10px;font-weight:700;font-size:15px;color:#fff;background:linear-gradient(90deg,#6C63FF,#00C2A8);box-shadow:0 4px 20px rgba(108,99,255,0.4);cursor:pointer;}
+.btn:disabled{opacity:0.6;cursor:not-allowed;}
+.backBtn{position:absolute;left:20px;top:20px;font-size:22px;cursor:pointer;color:#00C2A8;}
+.tileList{display:flex;flex-direction:column;gap:12px;margin-top:10px;}
+.tile{background:rgba(255,255,255,0.08);padding:14px;border-radius:12px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,0.3);text-align:center;}
+.tile.selected{background:linear-gradient(90deg,#6C63FF,#00C2A8);}
+.imageBox{margin-top:20px;width:100%;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.5);}
+.imageBox img{width:100%;display:block;}
+.notice{background:rgba(255,255,255,0.05);padding:14px;border-radius:12px;color:#dbeafe;margin-top:14px;text-align:left;font-size:13px;line-height:1.5;}
+.section-grid{display:flex;flex-direction:column;gap:14px;margin-top:20px;width:100%;max-width:400px;}
+.section-tile{background:rgba(255,255,255,0.08);border-radius:14px;padding:16px;text-align:center;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,0.3);}
+.timer{font-size:16px;color:#00C2A8;margin:10px 0;}
+</style>
+</head>
+
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useEffect}=React;
+const F=window.F;
+const SB=window.SB;
+
+function HomeApp(){
+  const exams=["UPSC","NEET","NDA","Business"];
+  const [screen,setScreen]=useState("examlist");
+  const [selectedExam,setSelectedExam]=useState("");
+  const [section,setSection]=useState("");
+  const [participants,setParticipants]=useState([]);
+  const [upiPaid,setUpiPaid]=useState(false);
+  const [quizAnswers,setQuizAnswers]=useState({});
+
+  useEffect(()=>{
+    if(screen==="contest"){
+      const unsub = F.onSnapshot(F.collection(F.db,"contest_participants"),snapshot=>{
+        setParticipants(snapshot.docs.map(doc=>doc.data().name));
+      });
+      return ()=>unsub();
+    }
+  },[screen]);
+
+  if(screen==="examlist") return (
+    <div className="centerBox">
+      <h2>Select Exam</h2>
+      <div className="tileList">
+        {exams.map(ex=><div key={ex} className={`tile ${selectedExam===ex?'selected':''}`} onClick={()=>setSelectedExam(ex)}>{ex}</div>)}
+      </div>
+      <button className="btn" disabled={!selectedExam} onClick={()=>setScreen("home")}>Next</button>
+    </div>
+  );
+
+  if(screen==="home") return (
+    <div className="centerBox">
+      <h2>{selectedExam} Sections</h2>
+      <div className="section-grid">
+        {["Current Affairs","Practice Questions","Quick Books","Revision","Contest"].map(sec=>
+          <div key={sec} className="section-tile" onClick={()=>{
+            if(sec==="Contest") setScreen("contest"); else { setSection(sec); setScreen("section"); }
+          }}>{sec}</div>
+        )}
+      </div>
+    </div>
+  );
+
+  if(screen==="section") return (
+    <StudySection section={section} back={()=>setScreen("home")} />
+  );
+
+  if(screen==="contest") return (
+    <ContestScreen back={()=>setScreen("home")} upiPaid={upiPaid} setUpiPaid={setUpiPaid} setScreen={setScreen} participants={participants} />
+  );
+
+  if(screen==="quiz") return (
+    <QuizScreen back={()=>setScreen("contest")} answers={quizAnswers} setAnswers={setQuizAnswers}/>
+  );
+
+  return <div className="centerBox">Loading...</div>;
+}
+
+function StudySection({section,back}){
+  const [data,setData]=useState([]);
+  useEffect(()=>{
+    fetch(`https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/${section.replace(/\s+/g,'_')}.json`)
+    .then(r=>r.json()).then(j=>setData(j)).catch(e=>console.log(e));
+  },[section]);
+
+  return (
+    <div className="centerBox">
+      <div className="backBtn" onClick={back}>🔙</div>
+      <h2>{section}</h2>
+      {data.map((item,i)=><div key={i} className="imageBox"><img src={item.image || item}/></div>)}
+    </div>
+  );
+}
+
+function ContestScreen({back,upiPaid,setUpiPaid,setScreen,participants}){
+  const joinEnabled = upiPaid;
+  const payUPI = async ()=>{
+    alert("Payment done!");
+    setUpiPaid(true);
+    await F.addDoc(F.collection(F.db,"contest_participants"),{name:"You",paid:true});
+  };
+
+  return (
+    <div className="centerBox">
+      <div className="backBtn" onClick={back}>🔙</div>
+      <h2>Contest</h2>
+      <div className="notice"><b>Participants:</b> {participants.join(", ") || "No one yet"}</div>
+      <button className="btn" onClick={payUPI}>Pay Entry Fee ₹10</button>
+      <button className="btn" disabled={!joinEnabled} onClick={()=>setScreen("quiz")}>Join Quiz</button>
+      <div className="notice">
+        Dear user, if your payment is not received by app, you will be redirected to Manual Verification Form. After verification, your quiz access will be enabled.
+      </div>
+    </div>
+  );
+}
+
+function QuizScreen({back,answers,setAnswers}){
+  const [questions,setQuestions]=useState([]);
+  const [current,setCurrent]=useState(0);
+  const [timer,setTimer]=useState(240);
+
+  useEffect(()=>{
+    fetch("https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/practice_questions.json")
+    .then(r=>r.json()).then(j=>setQuestions(j)).catch(e=>console.log(e));
+  },[]);
+
+  useEffect(()=>{
+    if(timer<=0){alert("⏰ Your time is over! Returning to Contest.");back();}
+    const t=setInterval(()=>setTimer(x=>x-1),1000);
+    return ()=>clearInterval(t);
+  },[timer]);
+
+  if(questions.length===0) return <div className="centerBox">Loading Quiz...</div>;
+  const q = questions[current];
+
+  const handleNext = async ()=>{
+    if(current<questions.length-1) setCurrent(current+1);
+    else{
+      const name = prompt("Enter Name");
+      const email = prompt("Enter Email");
+      const mobile = prompt("Enter Mobile");
+      try{
+        const { error } = await SB.from("quiz_responses").insert([{ name, email, mobile, answers }]);
+        if(error) throw error;
+        alert("✅ Quiz submitted successfully!");
+        back();
+      }catch(err){
+        alert("❌ Error saving to Supabase: " + err.message);
+      }
+    }
+  };
+
+  const formatTime = s=>{
+    const m=Math.floor(s/60),sec=s%60;
+    return `${m}:${sec<10?'0'+sec:sec}`;
+  };
+
+  return (
+    <div className="centerBox">
+      <div className="backBtn" onClick={back}>🔙</div>
+      <h2>Contest Quiz</h2>
+      <div className="timer">⏳ Time Left: {formatTime(timer)}</div>
+      <div className="notice">Question {current+1}/{questions.length}</div>
+      <div className="imageBox"><img src={q.image}/></div>
+      {["a","b","c","d"].map(opt=>
+        <button key={opt} className="btn" onClick={()=>setAnswers({...answers,[current]:opt})}>
+          {q[opt]}
+        </button>
+      )}
+      <button className="btn" onClick={handleNext}>
+        {current<questions.length-1?"Next":"Submit"}
+      </button>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<HomeApp/>);
+</script>
+</body>
+</html>
