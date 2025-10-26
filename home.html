@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Study Discussion Club</title>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDwbIHTMWM_AQ-NlsdXGDzAfoC8Tf8lZiY",
+  authDomain:"study-discussion-club.firebaseapp.com",
+  projectId:"study-discussion-club",
+  storageBucket:"study-discussion-club.appspot.com",
+  messagingSenderId:"383378613377",
+  appId:"1:383378613377:web:3b932c6b42076352811980"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+window.F = { db, auth, doc, getDoc, setDoc, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged };
+</script>
+
+<style>
+html,body,#root{height:100%;margin:0;padding:0;font-family:"Poppins",sans-serif;background:radial-gradient(circle at 50% 20%,#2a2a72 0%,#000 90%);color:white;}
+.centerBox{display:flex;flex-direction:column;align-items:center;text-align:center;padding:20px;}
+.inputBox{padding:10px;margin:6px;width:90%;max-width:300px;border-radius:8px;border:none;}
+.btn{width:90%;max-width:300px;padding:12px;margin-top:12px;border:none;border-radius:10px;font-weight:700;font-size:15px;color:#fff;background:linear-gradient(90deg,#6C63FF,#00C2A8);cursor:pointer;}
+.btn:disabled{opacity:0.6;cursor:not-allowed;}
+.imageBox{margin-top:12px;width:90%;max-width:400px;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.5);}
+.imageBox img{width:100%;display:block;}
+.section-tile{background:rgba(255,255,255,0.08);border-radius:14px;padding:16px;text-align:center;cursor:pointer;margin:6px 0;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useEffect}=React;
+const F=window.F;
+
+function App(){
+  const [screen,setScreen]=useState("loading");
+  const [user,setUser]=useState(null);
+  const [subscribed,setSubscribed]=useState(false);
+  const [section,setSection]=useState("");
+  const [images,setImages]=useState([]);
+  const sections = {
+    "UPSC":["https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upsc_gk.json","https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upsc%20practise%20questions.json","https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upscinterviewpractisequestions.json","https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/mindmaps.json"],
+    "Current Affairs":["https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/currentaffairs.json"],
+    "NEET":["https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/2a82ba6620749575ae169d17b1f430033e43ca4a/biology_practisequestions.json","https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/neetchemistry.json","https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/neetphysics.json"]
+  };
+
+  useEffect(()=>{
+    const localUser = localStorage.getItem("userLoggedIn");
+    F.onAuthStateChanged(F.auth, async u=>{
+      if(u){
+        setUser(u);
+        localStorage.setItem("userLoggedIn","true");
+        const docRef = F.doc(F.db,"users",u.uid);
+        const docSnap = await F.getDoc(docRef);
+        let isSub=false;
+        if(docSnap.exists()) isSub=docSnap.data().subscribed||false;
+        else await F.setDoc(docRef,{subscribed:false});
+        setSubscribed(isSub);
+        setScreen(isSub?"home":"subscription");
+      } else {
+        if(localUser==="true"){ // user already logged in but firebase lost session
+          setScreen("auth");
+        } else {
+          setScreen("auth");
+        }
+      }
+    });
+  },[]);
+
+  if(screen==="loading") return <div className="centerBox">Loading...</div>;
+  if(screen==="auth") return <Auth setScreen={setScreen}/>;
+  if(screen==="subscription") return <Subscription user={user} setSubscribed={setSubscribed} setScreen={setScreen}/>;
+  if(screen==="home") return <Home setSection={setSection} setScreen={setScreen}/>;
+  if(screen==="section") return <Section section={section} setScreen={setScreen}/>;
+
+  return null;
+}
+
+function Auth({setScreen}){
+  const [email,setEmail]=useState("");
+  const [password,setPassword]=useState("");
+
+  const login=async()=>{ try{ await F.signInWithEmailAndPassword(F.auth,email,password); } catch(e){alert(e.message);} };
+  const signup=async()=>{ try{ const u = await F.createUserWithEmailAndPassword(F.auth,email,password); await F.setDoc(F.doc(F.db,"users",u.user.uid),{subscribed:false}); } catch(e){alert(e.message);} };
+
+  return (
+    <div className="centerBox">
+      <h2>Login / Signup</h2>
+      <input className="inputBox" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
+      <input className="inputBox" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)}/>
+      <button className="btn" onClick={login}>Login</button>
+      <button className="btn" onClick={signup}>Signup</button>
+    </div>
+  );
+}
+
+function Subscription({user,setSubscribed,setScreen}){
+  const handlePay=async()=>{
+    if(!user) return alert("Login first");
+    await F.setDoc(F.doc(F.db,"users",user.uid),{subscribed:true},{merge:true});
+    setSubscribed(true);
+    setScreen("home");
+  };
+  return (
+    <div className="centerBox">
+      <h2>Subscription ₹99</h2>
+      <button className="btn" onClick={handlePay}>Buy Now ₹99</button>
+    </div>
+  );
+}
+
+function Home({setSection,setScreen}){
+  const sections = ["UPSC","Current Affairs","NEET"];
+  return (
+    <div className="centerBox">
+      <h2>Sections</h2>
+      {sections.map(sec=> <div key={sec} className="section-tile" onClick={()=>{setSection(sec); setScreen("section");}}>{sec}</div>)}
+    </div>
+  );
+}
+
+function Section({section}){
+  const [images,setImages]=useState([]);
+  useEffect(()=>{
+    const links = {
+      "UPSC":["https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upsc_gk.json","https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/UPSC%20Practice%20Questions.json"],
+      "Current Affairs":["https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/currentaffairs.json"],
+      "NEET":["https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/2a82ba6620749575ae169d17b1f430033e43ca4a/biology_practisequestions.json"]
+    };
+    const urls = links[section]||[];
+    Promise.all(urls.map(u=>fetch(u).then(r=>r.json()))).then(results=>{
+      const imgs = results.flat().map(i=>i.image||i);
+      setImages(imgs);
+    });
+  },[section]);
+
+  return (
+    <div className="centerBox">
+      <h2>{section}</h2>
+      {images.map((img,i)=><div key={i} className="imageBox"><img src={img}/></div>)}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
