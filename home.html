@@ -1,0 +1,49 @@
+<div id="root"></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "..."
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+const root = document.getElementById("root");
+
+// Initial loading screen
+root.innerHTML = "<h2>Loading...</h2>";
+
+// Firebase persistent login check
+onAuthStateChanged(auth, user => {
+  if (user) {
+    // User logged in → go to home/subscription
+    root.innerHTML = "<h2>Welcome back! Go to Home/Subscription screen</h2>";
+  } else {
+    // No user → show login/signup
+    root.innerHTML = `
+      <h2>Login / Signup</h2>
+      <input id="email" placeholder="Email"/>
+      <input id="password" type="password" placeholder="Password"/>
+      <button onclick="login()">Login</button>
+      <button onclick="signup()">Signup</button>
+    `;
+  }
+});
+
+// Example login/signup functions
+window.login = async () => {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  try { await auth.signInWithEmailAndPassword(email,password); }
+  catch(e){ alert(e.message); }
+};
+window.signup = async () => {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  try { await auth.createUserWithEmailAndPassword(email,password); }
+  catch(e){ alert(e.message); }
+};
+</script>
