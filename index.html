@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SDC App</title>
+
+<!-- React -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Firebase -->
+<script type="module" id="firebase-script">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { 
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut 
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { 
+  getFirestore, doc, setDoc, getDoc 
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDwbIHTMWM_AQ-NlsdXGDzAfoC8Tf8lZiY",
+  authDomain: "study-discussion-club.firebaseapp.com",
+  projectId: "study-discussion-club",
+  storageBucket: "study-discussion-club.appspot.com",
+  messagingSenderId: "383378613377",
+  appId: "1:383378613377:web:3b932c6b42076352811980"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+window.FB = { auth, db, doc, setDoc, getDoc, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut };
+</script>
+
+<style>
+html, body, #root { margin:0; padding:0; height:100%; background:black; color:white; font-family:poppins; }
+.centerBox{ display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; text-align:center; }
+.card{ background:#111; padding:20px; border-radius:12px; width:90%; max-width:360px; }
+.input, .btn{ width:100%; padding:12px; border-radius:10px; margin-top:10px; font-size:16px; border:none; }
+.btn{ background:#00c2a8; color:white; font-weight:700; cursor:pointer; }
+.tile{ background:#222; padding:14px; margin-top:10px; border-radius:12px; cursor:pointer; }
+.imageBox img{ width:100%; margin-top:10px; border-radius:12px; }
+.backBtn { font-size:22px; margin-bottom:10px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+function App(){
+
+  const [screen,setScreen] = useState("loading");
+  const [email,setEmail] = useState("");
+  const [password,setPassword] = useState("");
+  const [pin,setPin] = useState("");
+  const [selectedExam,setSelectedExam] = useState("");
+  const [section,setSection] = useState("");
+  const [images,setImages] = useState([]);
+
+  const exams = ["UPSC","NEET","NDA","BUSINESS"];
+
+  const examSections = {
+    "UPSC": {
+      "Current Affairs":"https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/currentaffairs.json",
+      "GK":"https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upsc_gk.json"
+    },
+    "NEET": {
+      "Biology":"https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/biology_practisequestions.json",
+      "Chemistry":"https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/neetchemistry.json"
+    }
+  };
+
+  async function fetchImages(url){
+    const r = await fetch(url);
+    const data = await r.json();
+    const first = Object.keys(data)[0];
+    setImages(data[first]);
+  }
+
+  useEffect(()=>{
+    FB.onAuthStateChanged(FB.auth, async(user)=>{
+      if(!user){ setScreen("login"); return; }
+
+      // Check PIN in Firestore
+      const ref = FB.doc(FB.db,"users",user.email);
+      const snap = await FB.getDoc(ref);
+
+      if(snap.exists()){
+        if(snap.data().pinSet){
+          setScreen("pin-login");
+        } else {
+          setScreen("pin-setup");
+        }
+      } else {
+        await FB.setDoc(ref,{pinSet:false});
+        setScreen("pin-setup");
+      }
+    });
+  },[]);
+
+  function doLogin(){
+    FB.signInWithEmailAndPassword(FB.auth,email,password)
+    .catch(()=>alert("Invalid Login"));
+  }
+
+  function doSignup(){
+    FB.createUserWithEmailAndPassword(FB.auth,email,password)
+    .catch(()=>alert("Signup Failed"));
+  }
+
+  async function setUserPIN(){
+    if(pin.length!==6){ alert("6 digit PIN required!"); return; }
+
+    await FB.setDoc(FB.doc(FB.db,"users",email),{pin:pin,pinSet:true});
+    setScreen("exam-select");
+  }
+
+  async function verifyPIN(){
+    const ref = FB.doc(FB.db,"users",FB.auth.currentUser.email);
+    const snap = await FB.getDoc(ref);
+
+    if(snap.exists() && snap.data().pin===pin){
+      setScreen("exam-select");
+    } else {
+      alert("Wrong PIN!");
+    }
+  }
+
+  if(screen==="loading") return <div className="centerBox">Loading...</div>;
+
+  if(screen==="login")
+  return(
+    <div className="centerBox">
+      <div className="card">
+        <h2>Login</h2>
+        <input className="input" placeholder="Email" onChange={e=>setEmail(e.target.value)}/>
+        <input className="input" placeholder="Password" type="password" onChange={e=>setPassword(e.target.value)}/>
+        <button className="btn" onClick={doLogin}>Login</button>
+        <button className="btn" onClick={doSignup}>Signup</button>
+      </div>
+    </div>
+  );
+
+  if(screen==="pin-setup")
+  return(
+    <div className="centerBox">
+      <div className="card">
+        <h2>Setup PIN</h2>
+        <input className="input" maxLength={6} placeholder="6 digit PIN" onChange={(e)=>setPin(e.target.value)}/>
+        <button className="btn" onClick={setUserPIN}>Save PIN</button>
+      </div>
+    </div>
+  );
+
+  if(screen==="pin-login")
+  return(
+    <div className="centerBox">
+      <div className="card">
+        <h2>Enter PIN</h2>
+        <input className="input" maxLength={6} placeholder="6 digit PIN" onChange={e=>setPin(e.target.value)}/>
+        <button className="btn" onClick={verifyPIN}>Unlock</button>
+      </div>
+    </div>
+  );
+
+  if(screen==="exam-select")
+  return(
+    <div className="centerBox">
+      <h2>Select Exam</h2>
+      {exams.map(ex=>
+        <div className="tile" key={ex} onClick={()=>{setSelectedExam(ex); setScreen("section-select");}}>{ex}</div>
+      )}
+    </div>
+  );
+
+  if(screen==="section-select")
+  return(
+    <div className="centerBox">
+      <div className="backBtn" onClick={()=>setScreen("exam-select")}>🔙</div>
+      <h2>{selectedExam}</h2>
+      {Object.keys(examSections[selectedExam]).map(sec=>
+        <div className="tile" key={sec}
+          onClick={()=>{setSection(sec); fetchImages(examSections[selectedExam][sec]); setScreen("images");}}>
+          {sec}
+        </div>
+      )}
+    </div>
+  );
+
+  if(screen==="images")
+  return(
+    <div className="centerBox">
+      <div className="backBtn" onClick={()=>setScreen("section-select")}>🔙</div>
+      <h2>{section}</h2>
+      <div className="imageBox">
+        {images.map((img,i)=><img key={i} src={img}/>)}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
