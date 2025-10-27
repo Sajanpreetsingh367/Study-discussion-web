@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SDC — Home</title>
+
+<!-- React -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDwbIHTMWM_AQ-NlsdXGDzAfoC8Tf8lZiY",
+  authDomain:"study-discussion-club.firebaseapp.com",
+  projectId:"study-discussion-club",
+  storageBucket:"study-discussion-club.appspot.com",
+  messagingSenderId:"383378613377",
+  appId:"1:383378613377:web:3b932c6b42076352811980"
+};
+
+const app = initializeApp(firebaseConfig);
+window.auth = getAuth(app);
+window.db = getFirestore(app);
+window.doc = doc;
+window.getDoc = getDoc;
+window.setDoc = setDoc;
+</script>
+
+<!-- Same UI style as Index -->
+<link rel="stylesheet" href="style.css">
+
+<style>
+.feature{
+ background:rgba(255,255,255,0.08);
+ padding:12px;
+ border-radius:10px;
+ margin:6px 0;
+ display:flex;align-items:center;
+ font-size:14px;
+}
+.feature span{margin-left:10px;color:#fff;}
+</style>
+</head>
+
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState, useEffect} = React;
+
+const sections = [
+ "Current Affairs",
+ "GK Questions",
+ "Books Summary",
+ "Prelims Practice",
+ "Mains Practice",
+ "Interview Practice",
+ "Contest",
+ "Mind Maps",
+ "Social Media Notes",
+ "Discussion",
+ "Donation Bank"
+];
+
+function App(){
+  const [subscribed,setSubscribed] = useState(false);
+
+  useEffect(()=>{
+    const local = localStorage.getItem("sub_active");
+    if(local==="yes") setSubscribed(true);
+  },[]);
+
+  async function buyNow(){
+    const user = auth.currentUser;
+    if(!user){
+      alert("Please login first!");
+      return;
+    }
+
+    await setDoc(doc(db,"subscriptions",user.uid),{
+      active:true,
+      exam:"UPSC",
+      at:new Date().toISOString()
+    });
+
+    localStorage.setItem("sub_active","yes");
+    setSubscribed(true);
+  }
+
+  if(!subscribed){
+    return(
+      <div className="centerBox">
+        <h2>Subscription</h2>
+        <h3>UPSC — Premium</h3>
+
+        <div className="feature">✔ <span>All Premium Materials</span></div>
+        <div className="feature">✔ <span>Contest Access</span></div>
+        <div className="feature">✔ <span>Discussion Community</span></div>
+        <div className="feature">✔ <span>Mains + Prelims Practice</span></div>
+        <div className="feature">✔ <span>Interview Preparation</span></div>
+
+        <button className="btn" onClick={buyNow}>
+          Pay ₹17
+        </button>
+      </div>
+    );
+  }
+
+  return(
+    <div className="centerBox">
+      <h2>UPSC</h2>
+      <div className="tile-grid">
+        {sections.map(s=>
+          <div className="tile" key={s} onClick={()=>alert(s+" Coming Soon!")}>
+            {s}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+
+</body>
+</html>
