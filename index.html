@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Study Discussion Club — Elite</title>
+
+<!-- React & Babel -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Firebase (modules) -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+// --- <<< Use your configured firebase values below (I used the one you gave earlier) >>> ---
+const firebaseConfig = {
+  apiKey:"AIzaSyDwbIHTMWM_AQ-NlsdXGDzAfoC8Tf8lZiY",
+  authDomain:"study-discussion-club.firebaseapp.com",
+  projectId:"study-discussion-club",
+  storageBucket:"study-discussion-club.appspot.com",
+  messagingSenderId:"383378613377",
+  appId:"1:383378613377:web:3b932c6b42076352811980"
+};
+// --------------------------------------------------------------------------------------------
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// expose helper on window for the inline React code
+window.F = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, doc, setDoc, getDoc, collection, addDoc };
+</script>
+
+<style>
+/* Kept UI same as your preferred style — minimal changes */
+:root {
+  --accent: #6C63FF;
+  --accent2: #00C2A8;
+  --glass: rgba(255,255,255,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:"Poppins",sans-serif;}
+html,body,#root{height:100%;width:100%;background:radial-gradient(circle at 50% 20%,#2a2a72 0%,#000 90%);color:white;overflow:hidden;}
+.centerBox{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;width:100vw;text-align:center;padding:20px;}
+.card{background:rgba(255,255,255,0.08);backdrop-filter:blur(12px);border-radius:18px;padding:24px;width:92%;max-width:420px;box-shadow:0 8px 30px rgba(0,0,0,0.4);}
+.logo-3d{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#00C2A8,#6C63FF);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:#fff;margin-bottom:14px;box-shadow:0 12px 40px rgba(108,99,255,0.35);animation:spin 6s linear infinite;}
+@keyframes spin{0%{transform:rotateY(0deg)}100%{transform:rotateY(360deg)}}
+.input{width:100%;padding:12px 14px;margin:8px 0;border-radius:10px;border:none;font-size:15px;background:rgba(255,255,255,0.95);color:#111;}
+.btn{width:100%;padding:12px;margin-top:10px;border-radius:10px;border:none;font-weight:700;color:#fff;background:linear-gradient(90deg,var(--accent),var(--accent2));cursor:pointer;}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.18);color:#fff;}
+.small-note{font-size:13px;color:#d0d0d0;margin-top:8px;}
+.tile-grid{display:grid;grid-template-columns:repeat(1,1fr);gap:12px;margin-top:12px;width:100%;}
+.tile{background:rgba(255,255,255,0.95);color:#111;padding:14px;border-radius:12px;font-weight:700;cursor:pointer;}
+.top-row{display:flex;align-items:center;gap:12px;justify-content:center;}
+.footer-note{font-size:12px;color:#cfcfcf;margin-top:12px;}
+.notice{background:rgba(255,255,255,0.06);padding:12px;border-radius:10px;margin-top:10px;color:#e6e6e6;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+/* Single-file React app (keeps your UI exactly similar) */
+const { useState, useEffect } = React;
+const F = window.F;
+
+function App(){
+  const [screen, setScreen] = useState('splash'); // splash, signup, login, pinVerify, examlist, subscription, manual
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userDoc, setUserDoc] = useState(null);
+
+  // Signup state (now includes pin)
+  const [signup, setSignup] = useState({ username:'', email:'', password:'', pin:'' });
+  const [login, setLogin] = useState({ email:'', password:'' });
+  const [pinInput, setPinInput] = useState('');
+  const [exam, setExam] = useState(null);
+  const [code, setCode] = useState('');
+  const [manual, setManual] = useState({ payer:'', upi:'', mobile:'' });
+
+  // On app load, observe auth state
+  useEffect(()=>{
+    const unsub = F.onAuthStateChanged(F.auth, async (u) => {
+      if(!u){
+        // no user logged in: show splash (Get Started)
+        setCurrentUser(null);
+        setUserDoc(null);
+        setScreen('splash');
+        return;
+      }
+      // user logged in: fetch user doc to see if pin exists
+      setCurrentUser(u);
+      try{
+        const dref = F.doc(F.db, 'users', u.uid);
+        const snap = await F.getDoc(dref);
+        if(snap && snap.exists()){
+          const data = snap.data();
+          setUserDoc(data);
+          // if pin exists -> ask for PIN; else show signup pin setup flow
+          if(data.pin && data.pin.toString().length === 6){
+            setScreen('pinVerify');
+          } else {
+            // if user doc exists but no pin, show signupPin (allow them to set)
+            setScreen('signupPinFromUser');
+          }
+        } else {
+          // No doc found (shouldn't often happen) — show signup to set pin & data
+          setUserDoc(null);
+          setScreen('signup');
+        }
+      }catch(err){
+        console.error("Error fetching user doc:", err);
+        setScreen('splash');
+      }
+    });
+    return ()=>unsub();
+  },[]);
+
+  /* ---------- Signup handler (creates auth user + saves doc with PIN) ---------- */
+  async function handleSignup(){
+    try{
+      if(!signup.username || !signup.email || !signup.password || !signup.pin){
+        return alert("Please fill all fields including 6-digit PIN.");
+      }
+      if(signup.pin.length !== 6) return alert("PIN must be 6 digits.");
+      // create auth user
+      const result = await F.createUserWithEmailAndPassword(F.auth, signup.email, signup.password);
+      const uid = result.user.uid;
+      // save to Firestore with pin
+      await F.setDoc(F.doc(F.db, 'users', uid), {
+        username: signup.username,
+        email: signup.email,
+        pin: signup.pin,
+        createdAt: Date.now(),
+        subscription: false
+      });
+      alert("Account created — PIN saved ✅");
+      // after signup, go to exam list directly
+      setUserDoc({ username: signup.username, email: signup.email, pin: signup.pin, subscription:false });
+      setScreen('examlist');
+    } catch(err){
+      console.error(err);
+      alert("Signup error: " + (err.message || err));
+    }
+  }
+
+  /* ---------- If a user exists but hasn't set PIN in doc, allow them to set it (signupPinFromUser) ---------- */
+  async function handleSetPinForExistingUser(pinVal){
+    if(!pinVal || pinVal.length !== 6) return alert("Enter 6-digit PIN");
+    if(!currentUser) return alert("No logged-in user");
+    try{
+      await F.setDoc(F.doc(F.db, 'users', currentUser.uid), { pin: pinVal }, { merge: true });
+      setUserDoc(prev => ({ ...(prev||{}), pin: pinVal }));
+      alert("PIN saved ✅");
+      setScreen('examlist');
+    }catch(err){
+      console.error(err);
+      alert("Error saving PIN: " + err.message);
+    }
+  }
+
+  /* ---------- Login (email+password) ---------- */
+  async function handleLogin(){
+    try{
+      if(!login.email || !login.password) return alert("Enter email & password");
+      await F.signInWithEmailAndPassword(F.auth, login.email, login.password);
+      // onAuthStateChanged will handle next screen (pin or signupPinFromUser)
+    } catch(err){
+      console.error(err);
+      alert("Login failed: " + (err.message || err));
+    }
+  }
+
+  /* ---------- PIN Verify (for returning users) ---------- */
+  async function handleVerifyPin(){
+    if(!currentUser){
+      alert("No user logged in — please login first.");
+      setScreen('splash');
+      return;
+    }
+    try{
+      const snap = await F.getDoc(F.doc(F.db, 'users', currentUser.uid));
+      if(!snap.exists()){
+        alert("User record not found. Please signup again.");
+        setScreen('signup');
+        return;
+      }
+      const data = snap.data();
+      if(!data.pin){
+        alert("No PIN found — please set PIN.");
+        setScreen('signupPinFromUser');
+        return;
+      }
+      if(pinInput === data.pin.toString()){
+        // PIN ok -> if subscription true, you might redirect to home; for now go to examlist
+        if(data.subscription){
+          // if you have a separate home.html you can redirect; currently show examlist
+          // window.location.href = 'home.html';
+          setScreen('examlist');
+        } else {
+          setScreen('examlist');
+        }
+      } else {
+        alert("Wrong PIN. Try again.");
+        setPinInput('');
+      }
+    } catch(err){
+      console.error(err);
+      alert("Error verifying PIN: " + err.message);
+    }
+  }
+
+  /* ---------- Simple Manual verification submit ---------- */
+  async function submitManual(){
+    if(!manual.payer || !manual.upi || !manual.mobile) return alert("Fill all manual verification fields");
+    try{
+      await F.addDoc(F.collection(F.db, 'manual_verifications'), { ...manual, ts: Date.now() });
+      alert("Submitted for manual verification. We'll verify and activate.");
+      setScreen('examlist');
+    } catch(err){
+      console.error(err);
+      alert("Error submitting manual verification.");
+    }
+  }
+
+  /* ---------- UI Screens (keeping original style) ---------- */
+
+  // SPLASH / WELCOME
+  if(screen === 'splash'){
+    return (
+      <div className="centerBox">
+        <div className="logo-3d">SDC</div>
+        <h2 style={{marginTop:12, letterSpacing:1}}>Study Discussion Club</h2>
+        <p className="small-note">Where preparation meets perfection — crafted for elite aspirants.</p>
+        <div style={{width:'90%',maxWidth:420, marginTop:18}}>
+          <button className="btn" onClick={()=>setScreen('signup')}>Get Started</button>
+          <button className="btn ghost" style={{marginTop:8}} onClick={()=>setScreen('login')}>Login</button>
+        </div>
+        <div className="footer-note">Developed by Sajan</div>
+      </div>
+    );
+  }
+
+  // SIGNUP (with PIN)
+  if(screen === 'signup'){
+    return (
+      <div className="centerBox">
+        <div className="card">
+          <h3>Create your account</h3>
+          <input className="input" placeholder="Username" value={signup.username} onChange={e=>setSignup({...signup,username:e.target.value})}/>
+          <input className="input" placeholder="Email" value={signup.email} onChange={e=>setSignup({...signup,email:e.target.value})}/>
+          <input className="input" placeholder="Password" type="password" value={signup.password} onChange={e=>setSignup({...signup,password:e.target.value})}/>
+          <input className="input" placeholder="Create 6-digit PIN" maxLength={6} value={signup.pin} onChange={e=>setSignup({...signup,pin:e.target.value.replace(/\D/g,'')})}/>
+          <button className="btn" onClick={handleSignup}>Register & Save PIN</button>
+          <button className="btn ghost" style={{marginTop:8}} onClick={()=>setScreen('login')}>Already have account? Login</button>
+        </div>
+      </div>
+    );
+  }
+
+  // If user existed but PIN not set in doc, allow them to set PIN (after login via other means)
+  if(screen === 'signupPinFromUser'){
+    const [pinLocal, setPinLocal] = useState('');
+    return (
+      <div className="centerBox">
+        <div className="card">
+          <h3>Set a 6-digit PIN</h3>
+          <p className="small-note">You are logged in. Set a PIN for quick access next time.</p>
+          <input className="input" placeholder="Enter 6-digit PIN" maxLength={6} value={pinLocal} onChange={e=>setPinLocal(e.target.value.replace(/\D/g,''))}/>
+          <button className="btn" onClick={()=>handleSetPinForExistingUser(pinLocal)}>Save PIN</button>
+        </div>
+      </div>
+    );
+  }
+
+  // LOGIN (email + password). After login, onAuthStateChanged will route to pinVerify or signupPinFromUser.
+  if(screen === 'login'){
+    return (
+      <div className="centerBox">
+        <div className="card">
+          <h3>Login</h3>
+          <input className="input" placeholder="Email" value={login.email} onChange={e=>setLogin({...login,email:e.target.value})}/>
+          <input className="input" placeholder="Password" type="password" value={login.password} onChange={e=>setLogin({...login,password:e.target.value})}/>
+          <button className="btn" onClick={handleLogin}>Login</button>
+          <button className="btn ghost" style={{marginTop:8}} onClick={()=>setScreen('signup')}>Create new account</button>
+        </div>
+      </div>
+    );
+  }
+
+  // PIN VERIFY (for returning user who is already authenticated by Firebase)
+  if(screen === 'pinVerify'){
+    return (
+      <div className="centerBox">
+        <div className="card">
+          <h3>Enter your 6-digit PIN</h3>
+          <input className="input" placeholder="PIN" maxLength={6} value={pinInput} onChange={e=>setPinInput(e.target.value.replace(/\D/g,''))}/>
+          <button className="btn" onClick={handleVerifyPin}>Unlock</button>
+          <div style={{marginTop:10}}>
+            <button className="btn ghost" onClick={()=>{ alert("If you forgot PIN, please re-login with email & password."); setScreen('login'); }}>Login with Email</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // EXAM LIST
+  if(screen === 'examlist'){
+    return (
+      <div className="centerBox">
+        <div style={{width:'90%',maxWidth:520}}>
+          <h2 style={{textAlign:'center'}}>{userDoc && userDoc.username ? `Welcome, ${userDoc.username}` : 'Choose Exam'}</h2>
+          <div className="tile-grid">
+            {['UPSC','NEET','NDA','Business'].map(e=>(
+              <div key={e} className="tile" onClick={()=>setExam(e)} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span>{e}</span>
+                <span style={{fontSize:13,color:'#666'}}>{exam===e? 'Selected' : ''}</span>
+              </div>
+            ))}
+          </div>
+          <button className="btn" disabled={!exam} style={{marginTop:12}} onClick={()=>setScreen('subscription')}>Continue</button>
+          <div style={{marginTop:12, textAlign:'center'}}>
+            <button className="btn ghost" onClick={async ()=>{
+              // Logout (clear auth)
+              try{ await F.auth.signOut(); setScreen('splash'); }catch(e){console.error(e);}
+            }}>Logout</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // SUBSCRIPTION (shows the selected exam and features; Pay Now placeholder)
+  if(screen === 'subscription'){
+    return (
+      <div className="centerBox">
+        <div className="card" style={{maxWidth:520}}>
+          <h3 style={{textAlign:'center'}}>{exam} Subscription</h3>
+          <div className="notice">
+            <strong>Included:</strong><br/>
+            ✓ Current Affairs<br/>
+            ✓ Practice Questions<br/>
+            ✓ Books Summary<br/>
+            ✓ MindMaps<br/>
+            ✓ Interview Prep
+          </div>
+          <div style={{marginTop:12}}>
+            <button className="btn" onClick={()=>{
+              alert("Payment flow placeholder (UPI/webhook) — integrate later.");
+              // In real flow you would call backend and set subscription:true on user doc after payment webhook verifies
+            }}>Pay Now ₹17</button>
+          </div>
+          <div style={{marginTop:10}}>
+            <input className="input" placeholder="Enter Code (optional)" value={code} onChange={e=>setCode(e.target.value)}/>
+            <button className="btn ghost" style={{marginTop:8}} onClick={()=>{
+              if(code.trim().toUpperCase()==='BIGHIT'){
+                alert("Code accepted — access granted.");
+                // Set subscription true on user doc if logged in
+                if(currentUser){
+                  F.setDoc(F.doc(F.db,'users',currentUser.uid), { subscription:true }, { merge:true }).then(()=>{ alert("Subscription activated in profile."); setScreen('examlist'); });
+                } else setScreen('examlist');
+              } else alert("Invalid code");
+            }}>Apply Code</button>
+          </div>
+          <div style={{marginTop:10}}>
+            <button className="btn ghost" onClick={()=>setScreen('manual')}>Manual Verification</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // MANUAL verification form
+  if(screen === 'manual'){
+    return (
+      <div className="centerBox">
+        <div className="card" style={{maxWidth:520}}>
+          <h3>Manual Verification</h3>
+          <input className="input" placeholder="Payer Name" value={manual.payer} onChange={e=>setManual({...manual,payer:e.target.value})} />
+          <input className="input" placeholder="UPI ID" value={manual.upi} onChange={e=>setManual({...manual,upi:e.target.value})} />
+          <input className="input" placeholder="Mobile No" value={manual.mobile} onChange={e=>setManual({...manual,mobile:e.target.value})} />
+          <button className="btn" onClick={submitManual}>Submit</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback (shouldn't reach)
+  return (
+    <div className="centerBox">
+      <div>Loading...</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
