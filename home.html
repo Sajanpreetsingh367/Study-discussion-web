@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Study Discussion Club — Home</title>
+
+<style>
+:root {
+  --accent:#6C63FF;
+  --accent2:#00C2A8;
+}
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:"Poppins",sans-serif;
+}
+html,body{
+  height:100%;
+  width:100%;
+  background:radial-gradient(circle at 50% 20%,#2a2a72 0%,#000 90%);
+  color:white;
+}
+.centerBox{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:20px;
+  width:100%;
+}
+.header{
+  width:100%;
+  max-width:520px;
+  margin-top:20px;
+  text-align:center;
+}
+.subtitle{
+  font-size:14px;
+  color:#dcdcdc;
+  margin-top:4px;
+}
+.grid{
+  margin-top:22px;
+  width:100%;
+  max-width:520px;
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px;
+}
+.card{
+  background:rgba(255,255,255,0.08);
+  border-radius:14px;
+  padding:16px;
+  text-align:center;
+  cursor:pointer;
+  transition:0.25s;
+}
+.card:hover{background:rgba(255,255,255,0.16);}
+.card img{
+  width:70px;
+  height:70px;
+  object-fit:contain;
+  margin-bottom:6px;
+}
+
+.sectionContainer{
+  width:100%;
+  margin-top:30px;
+}
+.sectionTitle{
+  font-size:18px;
+  font-weight:700;
+  margin-bottom:10px;
+}
+.imageList img{
+  width:100%;
+  max-width:520px;
+  border-radius:12px;
+  margin-bottom:15px;
+  border:2px solid rgba(255,255,255,0.12);
+}
+
+.logoutBtn{
+  margin-top:30px;
+  border:none;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  padding:12px 22px;
+  border-radius:10px;
+  color:white;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.backBtn{
+  position:absolute;
+  left:18px;
+  top:18px;
+  background:rgba(255,255,255,0.1);
+  border:1px solid rgba(255,255,255,0.2);
+  padding:6px 12px;
+  border-radius:8px;
+  color:#fff;
+  cursor:pointer;
+}
+</style>
+
+</head>
+<body>
+
+<button class="backBtn" onclick="goBack()">⭠ Back</button>
+
+<div class="centerBox">
+  <div class="header">
+    <h2 id="examName">Loading...</h2>
+    <p class="subtitle">Choose a section</p>
+  </div>
+
+  <div class="grid">
+    <div class="card" onclick="showSection('current')">
+      <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"/>
+      <div>Current Affairs</div>
+    </div>
+
+    <div class="card" onclick="showSection('practice')">
+      <img src="https://cdn-icons-png.flaticon.com/512/201/201572.png"/>
+      <div>Practice Questions</div>
+    </div>
+
+    <div class="card" onclick="showSection('mindmap')">
+      <img src="https://cdn-icons-png.flaticon.com/512/952/952717.png"/>
+      <div>Mind Maps</div>
+    </div>
+
+    <div class="card" onclick="showSection('interview')">
+      <img src="https://cdn-icons-png.flaticon.com/512/3135/3135810.png"/>
+      <div>Interview Q&A</div>
+    </div>
+  </div>
+
+  <div id="sectionBox" class="sectionContainer"></div>
+
+  <button class="logoutBtn" onclick="logoutUser()">Logout</button>
+</div>
+
+<script>
+// ✅ Section JSON URLs
+const jsonLinks = {
+  "current": "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/currentaffairs.json",
+  "practice": "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upsc%20practise%20questions.json",
+  "mindmap": "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/mindmaps.json",
+  "interview": "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upscinterviewpractisequestions.json"
+};
+
+// ✅ Show Exam Name
+let exam = localStorage.getItem("selectedExam");
+if(exam) document.getElementById("examName").innerText = exam + " Course";
+
+// ✅ Load & show section images
+async function showSection(section){
+  const url = jsonLinks[section];
+  const data = await fetch(url).then(r=>r.json());
+
+  let box = document.getElementById("sectionBox");
+  box.innerHTML = `<div class='sectionTitle'>${data.title}</div><div class='imageList'></div>`;
+
+  let list = box.querySelector('.imageList');
+  
+  data.images.forEach(img=>{
+    let image = document.createElement("img");
+    image.src = img;
+    list.appendChild(image);
+  });
+
+  box.scrollIntoView({behavior:"smooth"});
+}
+
+function logoutUser(){
+  localStorage.clear();
+  window.location.href="index.html";
+}
+
+function goBack(){
+  window.location.href="index.html";
+}
+</script>
+
+</body>
+</html>
