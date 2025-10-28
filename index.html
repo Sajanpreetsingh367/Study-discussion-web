@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Study Discussion Club — Elite</title>
+
+<!-- React & Babel -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+html,body,#root{height:100%;margin:0;padding:0;font-family:"Poppins",sans-serif;background:linear-gradient(#000,#141442);}
+.centerBox{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;width:100vw;text-align:center;padding:20px;color:white;}
+.card{background:rgba(255,255,255,0.15);border-radius:16px;padding:25px;width:90%;max-width:360px;}
+.input{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;font-size:15px;}
+.btn{width:100%;padding:12px;margin-top:14px;border:none;border-radius:10px;font-weight:700;color:#fff;font-size:15px;background:linear-gradient(90deg,#6C63FF,#00C2A8);}
+.btn2{width:100%;padding:12px;margin-top:10px;border-radius:10px;font-size:14px;color:#6C63FF;border:1px solid #6C63FF;background:transparent;}
+.tile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:12px;width:100%;max-width:420px;}
+.tile{padding:15px;border-radius:12px;cursor:pointer;font-weight:600;background:#fff;color:#000;}
+.tile.selected{background:linear-gradient(90deg,#6C63FF,#00C2A8);color:#fff;}
+.notice{background:#1119;padding:14px;border-radius:14px;margin:12px;font-size:14px;color:#fff;text-align:left;}
+.logo{font-size:44px;font-weight:800;color:#00C2A8;}
+</style>
+</head>
+
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { 
+  getAuth, onAuthStateChanged, createUserWithEmailAndPassword 
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { 
+  getFirestore, doc, setDoc, getDoc, updateDoc 
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDwbIHTMWM_AQ-NlsdXGDzAfoC8Tf8lZiY",
+  authDomain:"study-discussion-club.firebaseapp.com",
+  projectId:"study-discussion-club",
+  storageBucket:"study-discussion-club.appspot.com",
+  messagingSenderId:"383378613377",
+  appId:"1:383378613377:web:3b932c6b42076352811980"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const { useState, useEffect } = React;
+
+function App(){
+  const [screen,setScreen] = useState("splash");
+  const [signup,setSignup] = useState({username:"",email:"",password:"",pin:""});
+  const [pin,setPin] = useState("");
+  const [exam,setExam] = useState("");
+  const [code,setCode] = useState("");
+  const [user,setUser] = useState(null);
+  const [userData,setUserData] = useState(null);
+
+  useEffect(()=>{
+    onAuthStateChanged(auth, async u=>{
+      if(!u) { setScreen("splash"); return; }
+      setUser(u);
+      const d = await getDoc(doc(db,"users",u.uid));
+      if(d.exists()){
+        setUserData(d.data());
+        if(!d.data().pin) setScreen("signup");
+        else if(!d.data().subscription) setScreen("examlist");
+        else setScreen("pinVerify");
+      }
+    });
+  },[]);
+
+  const doSignup = async () =>{
+    if(!signup.username||!signup.email||!signup.password||signup.pin.length!==6){
+      alert("Fill all details correctly!"); return;
+    }
+    const reg = await createUserWithEmailAndPassword(auth, signup.email, signup.password);
+    await setDoc(doc(db,"users",reg.user.uid),
+      {...signup,subscription:false,exam:""}
+    );
+    setUser(reg.user);
+    alert("✅ Account created");
+    setScreen("examlist");
+  };
+
+  const verifyPIN = async () =>{
+    if(pin === userData.pin){
+      if(!userData.subscription) setScreen("examlist");
+      else window.location.href="home.html";
+    } else alert("Wrong PIN!");
+  };
+
+  const activateSubscription = async () =>{
+    await updateDoc(doc(db,"users",user.uid),{
+      subscription:true,exam:exam
+    });
+    alert("✅ Access Granted");
+    window.location.href="home.html";
+  };
+
+  // ----- SCREENS -----
+
+  if(screen==="splash") return(
+    <div className="centerBox">
+      <div className="logo">SDC</div>
+      <h2>Study Discussion Club</h2>
+      <button className="btn" onClick={()=>setScreen("signup")}>Get Started</button>
+    </div>
+  );
+
+  if(screen==="signup") return(
+    <div className="centerBox">
+      <div className="card">
+        <h3>Signup</h3>
+        <input className="input" placeholder="Username" 
+          onChange={e=>setSignup({...signup,username:e.target.value})}/>
+        <input className="input" placeholder="Email"
+          onChange={e=>setSignup({...signup,email:e.target.value})}/>
+        <input className="input" type="password" placeholder="Password"
+          onChange={e=>setSignup({...signup,password:e.target.value})}/>
+        <input className="input" maxLength="6" placeholder="Create PIN"
+          onChange={e=>setSignup({...signup,pin:e.target.value})}/>
+        <button className="btn" onClick={doSignup}>Register</button>
+      </div>
+    </div>
+  );
+
+  if(screen==="pinVerify") return(
+    <div className="centerBox">
+      <h3>Enter PIN</h3>
+      <input className="input" maxLength="6" placeholder="PIN"
+        onChange={e=>setPin(e.target.value)}/>
+      <button className="btn" onClick={verifyPIN}>Verify</button>
+    </div>
+  );
+
+  if(screen==="examlist") return(
+    <div className="centerBox">
+      <h2>Select Exam</h2>
+      <div className="tile-grid">
+        {["UPSC","NEET","JUDICIARY","BOARD CLASSES","BUSINESS"].map(x=>
+          <div key={x} className={`tile ${exam===x?"selected":""}`} 
+            onClick={()=>setExam(x)}>
+            {x}
+          </div>
+        )}
+      </div>
+      <button className="btn" disabled={!exam} onClick={()=>setScreen("subscription")}>
+        Next
+      </button>
+    </div>
+  );
+
+  if(screen==="subscription") return(
+    <div className="centerBox">
+      <h2>{exam} Subscription</h2>
+      <div className="notice">
+        ✓ Current Affairs<br/>
+        ✓ Practice Questions<br/>
+        ✓ Book Summaries<br/>
+        ✓ Mind Maps<br/>
+        ✓ Interview Guidance
+      </div>
+      <button className="btn" onClick={()=>alert("UPI Coming Soon!")}>
+        Pay ₹17
+      </button>
+      <input className="input" placeholder="Enter Code"
+        onChange={e=>setCode(e.target.value.toUpperCase())}/>
+      <button className="btn2" 
+        onClick={()=>{ if(code==="BIGHIT") activateSubscription(); else alert("Invalid Code"); }}>
+        Apply Code
+      </button>
+    </div>
+  );
+
+  return <div className="centerBox">Loading...</div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+
+</body>
+</html>
