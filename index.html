@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Study Discussion Club — Master</title>
+
+<!-- React & Babel -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, 
+         createUserWithEmailAndPassword, 
+         signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_BUCKET",
+  messagingSenderId: "YOUR_MSG_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+window.F = { 
+  auth: getAuth(app), 
+  db: getFirestore(app),
+  onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  doc, setDoc, getDoc
+};
+</script>
+
+<style>
+/* Same UI as given */
+:root{--accent:#6C63FF;--accent2:#00C2A8;--glass:rgba(255,255,255,0.08);--radius:16px;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Inter,Arial,sans-serif;}
+html,body,#root{height:100%;width:100%;background:linear-gradient(160deg,#070724,#2b0b5b);}
+.container{height:100%;display:flex;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+.panel{width:100%;max-width:420px;background:var(--glass);backdrop-filter:blur(12px);border-radius:var(--radius);padding:28px;text-align:center;color:white;}
+.logo{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;margin:0 auto 10px;}
+.title{font-size:22px;font-weight:700;margin-top:10px;}
+.card{background:rgba(255,255,255,0.12);padding:20px;border-radius:var(--radius);margin-top:15px;}
+.field{display:flex;flex-direction:column;margin-bottom:12px;text-align:left;}
+label{font-size:14px;color:#ddd;margin-bottom:4px;}
+.input{padding:14px;border-radius:10px;border:none;font-size:14px;}
+.btn{padding:14px;border-radius:10px;border:none;font-weight:700;color:#fff;background:linear-gradient(90deg,var(--accent),var(--accent2));margin-top:10px;cursor:pointer;}
+.btn.ghost{background:transparent;border:1px solid #fff;}
+.back{text-align:left;color:white;font-weight:700;margin-bottom:10px;cursor:pointer;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+const F = window.F;
+
+function App(){
+  const [screen,setScreen] = useState("loading");
+  const [signup,setSignup] = useState({username:"",email:"",password:"",mobile:"",pin:""});
+  const [login,setLogin] = useState({email:"",password:""});
+  const [pinEnter,setPinEnter] = useState("");
+
+  // Detect Logged In User
+  useEffect(()=>{
+    F.onAuthStateChanged(F.auth, async(u)=>{
+      if(!u){ setScreen("welcome"); return; }
+      const ref = F.doc(F.db,"users",u.uid);
+      const snap = await F.getDoc(ref);
+      if(snap.exists() && snap.data().pin){
+        setScreen("pinAuth");
+      } else {
+        setScreen("signupComplete");
+      }
+    });
+  },[]);
+
+  async function handleSignup(){
+    if(!signup.email||!signup.password||!signup.username||!signup.pin) return alert("Fill all fields including PIN!");
+    if(signup.pin.length !== 6) return alert("PIN must be 6 digits");
+
+    try{
+      const u = await F.createUserWithEmailAndPassword(F.auth,signup.email,signup.password);
+      await F.setDoc(F.doc(F.db,'users',u.user.uid),{
+        email: signup.email,
+        username: signup.username,
+        mobile: signup.mobile,
+        pin: signup.pin,
+        subscription: false,
+      });
+      setScreen("signupComplete");
+    }catch(e){ alert(e.message); }
+  }
+
+  async function handleLogin(){
+    try{
+      await F.signInWithEmailAndPassword(F.auth,login.email,login.password);
+    }catch(e){ alert(e.message); }
+  }
+
+  async function verifyPin(){
+    const u = F.auth.currentUser;
+    const snap = await F.getDoc(F.doc(F.db,"users",u.uid));
+    if(snap.exists() && snap.data().pin === pinEnter){
+      if(snap.data().subscription === true){
+        window.location.href="home.html";
+      } else {
+        setScreen("subscription");
+      }
+    } else {
+      alert("Wrong PIN!");
+      setPinEnter("");
+    }
+  }
+
+  /* SCREENS */
+  if(screen==="loading") return <div className="container"><h2 style={{color:"#fff"}}>Loading...</h2></div>;
+
+  if(screen==="welcome") return (
+    <div className="container">
+      <div className="panel">
+        <div className="logo">SDC</div>
+        <h2 className="title">Study Discussion Club</h2>
+        <div className="card">
+          <button className="btn" onClick={()=>setScreen("signup")}>Get Started</button>
+          <button className="btn ghost" onClick={()=>setScreen("login")}>Login</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if(screen==="signup") return (
+    <div className="container">
+      <div className="panel">
+        <div className="back" onClick={()=>setScreen("welcome")}>← Back</div>
+        <h2 className="title">Create Account</h2>
+        <div className="card">
+          <div className="field"><label>Username</label><input className="input" onChange={e=>setSignup({...signup,username:e.target.value})}/></div>
+          <div className="field"><label>Email</label><input className="input" onChange={e=>setSignup({...signup,email:e.target.value})}/></div>
+          <div className="field"><label>Password</label><input type="password" className="input" onChange={e=>setSignup({...signup,password:e.target.value})}/></div>
+          <div className="field"><label>Mobile</label><input className="input" onChange={e=>setSignup({...signup,mobile:e.target.value})}/></div>
+          <div className="field"><label>6-Digit PIN</label><input type="password" maxLength="6" className="input" onChange={e=>setSignup({...signup,pin:e.target.value})}/></div>
+          <button className="btn" onClick={handleSignup}>Signup</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if(screen==="login") return (
+    <div className="container">
+      <div className="panel">
+        <div className="back" onClick={()=>setScreen("welcome")}>← Back</div>
+        <div className="card">
+          <div className="field"><label>Email</label><input className="input" onChange={e=>setLogin({...login,email:e.target.value})}/></div>
+          <div className="field"><label>Password</label><input type="password" className="input" onChange={e=>setLogin({...login,password:e.target.value})}/></div>
+          <button className="btn" onClick={handleLogin}>Login</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if(screen==="signupComplete") return (
+    <div className="container">
+      <div className="panel">
+        <h2 className="title">Account Created 🎉</h2>
+        <p style={{marginTop:"10px"}}>Please select your exam next.</p>
+        <button className="btn" onClick={()=>window.location.href="exam.html"}>Continue</button>
+      </div>
+    </div>
+  );
+
+  if(screen==="pinAuth") return (
+    <div className="container">
+      <div className="panel">
+        <div className="logo">SDC</div>
+        <h2 className="title">Enter PIN</h2>
+        <div className="card">
+          <input type="password" maxLength="6" className="input" placeholder="6-Digit PIN" value={pinEnter} onChange={e=>setPinEnter(e.target.value)}/>
+          <button className="btn" onClick={verifyPin}>Continue</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return null;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
