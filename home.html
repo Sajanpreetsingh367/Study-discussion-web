@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Discussion Club — Home</title>
+
+<style>
+body {
+  margin:0; padding:0;
+  background:radial-gradient(circle,#2a2a72,#000);
+  color:white; font-family:Poppins,sans-serif;
+  display:flex; justify-content:center;
+}
+.screen {
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  width:100%; max-width:480px;
+  padding:20px;
+}
+.header {
+  width:100%; text-align:center;
+  padding:15px; font-size:22px;
+  font-weight:600; margin-bottom:10px;
+  background:rgba(255,255,255,0.1);
+  backdrop-filter:blur(15px);
+}
+.section-btn {
+  width:90%; padding:16px;
+  margin:10px 0;
+  font-size:16px; font-weight:600;
+  border-radius:12px;
+  cursor:pointer;
+  background:white; color:black;
+  box-shadow:0 0 15px rgba(0,0,0,0.4);
+  transition:0.25s;
+  text-align:center;
+}
+.section-btn:hover {
+  transform:scale(1.04);
+  background:linear-gradient(90deg,#6C63FF,#00C2A8);
+  color:white;
+}
+.back-btn {
+  position:absolute;
+  left:10px; top:10px;
+  background:#6C63FF;
+  padding:8px 14px;
+  border-radius:10px;
+  text-decoration:none;
+  color:white;
+  font-size:14px;
+}
+.section-title {
+  font-size:20px;
+  font-weight:700;
+  margin-top:50px;
+}
+img {
+  width:95%;
+  margin:12px auto;
+  border-radius:14px;
+  box-shadow:0 0 20px rgba(255,255,255,0.1);
+}
+</style>
+
+</head>
+<body>
+
+<!-- ✅ HOME SCREEN -->
+<div id="homeScreen" class="screen" style="display:flex;">
+  <div class="header"><span id="examName">Exam</span> — Dashboard</div>
+
+  <div class="section-btn" onclick="openSection('ca')">📌 Current Affairs</div>
+  <div class="section-btn" onclick="openSection('pq')">📝 Practice Questions</div>
+  <div class="section-btn" onclick="openSection('bs')">📚 Books Summary</div>
+  <div class="section-btn" onclick="openSection('mm')">🧠 Mind Maps</div>
+  <div class="section-btn" onclick="openSection('ip')">🎤 Interview Practice</div>
+</div>
+
+
+<!-- ✅ SECTION SCREEN TEMPLATE -->
+<div id="sectionScreen" class="screen">
+  <a class="back-btn" onclick="goHome()">← Back</a>
+  <h2 id="sectionTitle" class="section-title">Loading...</h2>
+  <div id="sectionContent"></div>
+</div>
+
+
+<script>
+// ✅ Exam Name Show
+document.getElementById("examName").innerText =
+  localStorage.getItem("selectedExam") || "UPSC";
+
+// ✅ JSON LINKS
+const urls = {
+  ca: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/currentaffairs.json",
+  pq: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upsc%20practise%20questions.json",
+  mm: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/mindmaps.json",
+  ip: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upscinterviewpractisequestions.json"
+};
+
+// ✅ Section Names
+const titles = {
+  ca: "Current Affairs",
+  pq: "Practice Questions",
+  mm: "Mind Maps",
+  ip: "Interview Practice",
+  bs: "Books Summary"
+};
+
+// ✅ Show Home
+function goHome() {
+  document.getElementById("homeScreen").style.display="flex";
+  document.getElementById("sectionScreen").style.display="none";
+}
+
+// ✅ Open Section + Load Images
+async function openSection(key){
+  document.getElementById("homeScreen").style.display="none";
+  document.getElementById("sectionScreen").style.display="flex";
+
+  document.getElementById("sectionTitle").innerText = titles[key];
+  document.getElementById("sectionContent").innerHTML = "<p>Loading...</p>";
+
+  if(key === "bs"){ 
+    document.getElementById("sectionContent").innerHTML="<p>Books Summary Coming Soon 📚</p>";
+    return;
+  }
+
+  try {
+    let res = await fetch(urls[key]);
+    let data = await res.json();
+
+    document.getElementById("sectionContent").innerHTML = 
+      data.map(url => `<img src="${url}" />`).join("");
+  }
+  catch{
+    document.getElementById("sectionContent").innerHTML="<p>Failed Loading ❌</p>";
+  }
+}
+</script>
+
+</body>
+</html>
