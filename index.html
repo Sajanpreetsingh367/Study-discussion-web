@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Study Discussion Club — Elite</title>
+
+<!-- React & Babel -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- ✅ Firebase Compat Version (WORKING with Babel) -->
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "🚀 YOUR_API_KEY",
+  authDomain: "🚀 YOUR_AUTH_DOMAIN",
+  projectId: "🚀 YOUR_PROJECT_ID",
+  storageBucket: "🚀 YOUR_STORAGE_BUCKET",
+  messagingSenderId: "🚀 MSG_ID",
+  appId: "🚀 APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+window.F = {auth,db};
+</script>
+
+<style>
+html,body,#root{height:100%;margin:0;padding:0;font-family:Poppins,sans-serif;background:black;color:white;}
+.centerBox{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;text-align:center;padding:20px;}
+.card{background:#111;border-radius:20px;padding:30px;width:90%;max-width:380px;}
+.input{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;}
+.btn{width:100%;padding:12px;margin-top:14px;border:none;border-radius:10px;color:#fff;background:linear-gradient(90deg,#6C63FF,#00C2A8);}
+.tile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-top:20px;width:100%;max-width:450px;}
+.tile{padding:16px;border-radius:12px;cursor:pointer;font-weight:600;background:#fff;color:#000;}
+.tile.selected{background:linear-gradient(90deg,#6C63FF,#00C2A8);color:#fff;}
+.notice{background:#222;padding:14px;border-radius:14px;margin:12px;}
+.logo{font-size:40px;font-weight:800;margin-bottom:10px;}
+</style>
+</head>
+
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useEffect} = React;
+const F = window.F;
+
+function App(){
+  const [screen,setScreen]=useState("splash");
+  const [user,setUser]=useState(null);
+  const [signup,setSignup]=useState({username:"",email:"",password:"",pin:""});
+  const [pin,setPin]=useState("");
+  const [exam,setExam]=useState("");
+  const [code,setCode]=useState("");
+
+  useEffect(()=>{
+    F.auth.onAuthStateChanged(async(u)=>{
+      if(!u){setScreen("splash");return;}
+      const d=await F.db.collection("users").doc(u.uid).get();
+      if(d.exists()){
+        const data=d.data(); setUser(data);
+        if(!data.pin) setScreen("signupPin");
+        else setScreen("pinVerify");
+      }
+    });
+  },[]);
+
+  async function handleSignup(){
+    if(signup.pin.length!==6) return alert("6 Digit PIN Required!");
+    const u=await F.auth.createUserWithEmailAndPassword(signup.email,signup.password);
+    await F.db.collection("users").doc(u.user.uid).set({
+      username:signup.username,email:signup.email,pin:signup.pin,subscription:false
+    });
+    setScreen("examlist");
+  }
+
+  function verifyPIN(){
+    if(pin===user.pin){
+      user.subscription ? window.location.href="home.html" : setScreen("examlist");
+    } else alert("Wrong PIN");
+  }
+
+  if(screen==="splash") return (
+    <div className="centerBox">
+      <div className="logo">SDC</div>
+      <h3>Study Discussion Club</h3>
+      <button className="btn" style={{width:"70%"}} onClick={()=>setScreen("signup")}>Get Started</button>
+      <button className="btn" style={{width:"70%",marginTop:"10px",background:"#333"}} onClick={()=>setScreen("pinVerify")}>Login</button>
+    </div>
+  );
+
+  if(screen==="signup") return (
+    <div className="centerBox"><div className="card">
+      <h3>Signup</h3>
+      <input className="input" placeholder="Name" onChange={e=>setSignup({...signup,username:e.target.value})}/>
+      <input className="input" placeholder="Email" onChange={e=>setSignup({...signup,email:e.target.value})}/>
+      <input className="input" placeholder="Password" type="password" onChange={e=>setSignup({...signup,password:e.target.value})}/>
+      <input className="input" placeholder="Create 6 Digit PIN" maxLength="6" onChange={e=>setSignup({...signup,pin:e.target.value})}/>
+      <button className="btn" onClick={handleSignup}>Register</button>
+    </div></div>
+  );
+
+  if(screen==="pinVerify") return (
+    <div className="centerBox">
+      <h3>Enter PIN</h3>
+      <input className="input" maxLength="6" placeholder="PIN" value={pin} onChange={e=>setPin(e.target.value)}/>
+      <button className="btn" onClick={verifyPIN}>Verify</button>
+    </div>
+  );
+
+  if(screen==="examlist") return (
+    <div className="centerBox">
+      <h2>Select Exam</h2>
+      <div className="tile-grid">
+        {["UPSC","NEET","JUDICIARY","BOARD","BUSINESS"].map(x=>
+          <div key={x} className={`tile ${exam===x?"selected":""}`} onClick={()=>setExam(x)}>{x}</div>
+        )}
+      </div>
+      <button className="btn" disabled={!exam} onClick={()=>setScreen("subscription")}>Next</button>
+    </div>
+  );
+
+  if(screen==="subscription") return (
+    <div className="centerBox">
+      <h2>{exam} Plan</h2>
+      <div className="notice">
+        ✓ Current Affairs<br/>
+        ✓ Practice Questions<br/>
+        ✓ Books Summary<br/>
+        ✓ Interview Prep
+      </div>
+      <button className="btn">Pay ₹17</button>
+      <input className="input" placeholder="Promo Code" onChange={e=>setCode(e.target.value)}/>
+      <button className="btn" onClick={()=> code==="BIGHIT" && (window.location.href="home.html") }>Apply</button>
+    </div>
+  );
+
+  return <h2>Loading...</h2>
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
