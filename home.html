@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Study Discussion Club</title>
+
+<style>
+:root { --accent:#6C63FF; --accent2:#00C2A8;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Poppins",sans-serif;}
+body{
+  background:radial-gradient(circle at 50% 20%,#2a2a72 0%,#000 90%);
+  color:white;text-align:center;padding:18px;
+}
+.hidden{display:none;}
+.grid{
+  margin-top:25px;display:grid;grid-template-columns:repeat(2,1fr);gap:16px;
+}
+.card{
+  background:rgba(255,255,255,0.08);
+  padding:18px;border-radius:14px;cursor:pointer;transition:0.25s;
+}
+.card:hover{background:rgba(255,255,255,0.18);}
+.card img{width:70px;height:70px;margin-bottom:6px;}
+.logoutBtn{
+  margin-top:35px;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border:none;padding:12px 22px;border-radius:10px;color:white;font-weight:700;
+  cursor:pointer;
+}
+.backBtn{
+  position:absolute;left:12px;top:12px;border:none;
+  background:rgba(255,255,255,0.13);
+  padding:8px 14px;border-radius:10px;color:white;cursor:pointer;
+}
+.optionBtn{
+  display:block;
+  width:100%;
+  margin:10px 0;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:rgba(255,255,255,0.15);
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+  transition:0.2s;
+}
+.optionBtn:hover{background:rgba(255,255,255,0.3);}
+.optionBtn.selected{background:linear-gradient(90deg,#00C2A8,#6C63FF);}
+.nextBtn{
+  margin-top:20px;
+  background:linear-gradient(90deg,#007bff,#00d4ff);
+  border:none;padding:12px 22px;border-radius:10px;
+  color:white;font-weight:700;cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+<!-- ✅ HOME SCREEN -->
+<div id="homeScreen">
+  <h2 id="examName">Your Course</h2>
+  <p>Select a learning section</p>
+  <div class="grid">
+    <div class="card" onclick="openSection('current')">
+      <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+      <div>Current Affairs</div>
+    </div>
+    <div class="card" onclick="openSection('practice')">
+      <img src="https://cdn-icons-png.flaticon.com/512/201/201572.png">
+      <div>Practice Questions</div>
+    </div>
+    <div class="card" onclick="openSection('mindmap')">
+      <img src="https://cdn-icons-png.flaticon.com/512/952/952717.png">
+      <div>Mind Maps</div>
+    </div>
+    <div class="card" onclick="openSection('interview')">
+      <img src="https://cdn-icons-png.flaticon.com/512/3135/3135810.png">
+      <div>Interview Q&A</div>
+    </div>
+    <div class="card" onclick="openSection('books')">
+      <img src="https://cdn-icons-png.flaticon.com/512/942/942748.png">
+      <div>UPSC Book Summary</div>
+    </div>
+    <div class="card" onclick="openSection('social')">
+      <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png">
+      <div>Social Media Material</div>
+    </div>
+    <div class="card" onclick="openSection('contest')">
+      <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png">
+      <div>Contest</div>
+    </div>
+  </div>
+  <button class="logoutBtn" onclick="logoutUser()">Logout</button>
+</div>
+
+<!-- ✅ SECTION SCREEN -->
+<div id="sectionScreen" class="hidden">
+  <button class="backBtn" onclick="goBack()">⭠ Back</button>
+  <h2 id="secTitle">Loading...</h2>
+  <div id="imgList"></div>
+</div>
+
+<!-- ✅ CONTEST SCREEN -->
+<div id="contestScreen" class="hidden">
+  <button class="backBtn" onclick="goBack()">⭠ Back</button>
+  <h2>🔥 Contest</h2>
+  <div style="background:rgba(255,255,255,0.09);padding:16px;border-radius:14px;margin-top:18px;">
+    <p style="font-size:15px;font-weight:600;">
+      Participants Joined: <span id="joinedCount">0</span> / 100000
+    </p>
+    <div style="width:100%;height:12px;background:#333;border-radius:8px;margin-top:10px;">
+      <div id="progressBar" style="height:100%;background:limegreen;width:0%;border-radius:8px;"></div>
+    </div>
+  </div>
+  <button id="payBtn" style="margin-top:25px;background:linear-gradient(90deg,#ff5858,#ff9e00);
+    border:none;padding:12px 22px;border-radius:10px;
+    font-size:16px;font-weight:700;color:white;cursor:pointer;"
+    onclick="payEntry()">Pay Entry Fee ₹10</button>
+  <button id="joinBtn" disabled
+    style="margin-top:15px;background:#555;
+    border:none;padding:12px 22px;border-radius:10px;
+    font-size:16px;font-weight:700;color:white;cursor:not-allowed;"
+    onclick="startQuiz()">Join Quiz</button>
+</div>
+
+<!-- ✅ QUIZ SCREEN -->
+<div id="quizScreen" class="hidden">
+  <button class="backBtn" onclick="quitQuiz()">⭠ Exit</button>
+  <h2>🧠 Quiz Time</h2>
+  <div id="quizContainer" style="margin-top:20px;text-align:left;"></div>
+</div>
+
+<script>
+const links = {
+  current: "https://raw.githubusercontent.com/Sajanpreet35/Bighit/main/upsc_currentaffairs.json",
+  practice: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upsc%20practise%20questions.json",
+  mindmap: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/mindmaps.json",
+  interview: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upscinterviewpractisequestions.json",
+  books: "https://raw.githubusercontent.com/Sajanpreet35/Bighit/main/upsc_books.json",
+  social: "https://raw.githubusercontent.com/Sajanpreet35/Bighit/main/social_media_material.json",
+  contest: "NO_JSON"
+};
+document.getElementById("examName").innerText =
+(localStorage.getItem("selectedExam") || "UPSC") + " Course";
+
+// ✅ Section Loader
+async function openSection(sec){
+  document.getElementById("homeScreen").classList.add("hidden");
+  if(sec === "contest"){ openContest(); return; }
+  document.getElementById("sectionScreen").classList.remove("hidden");
+
+  try{
+    let data = await fetch(links[sec]).then(r=>r.json());
+    document.getElementById("secTitle").innerText = data.title;
+    let list = document.getElementById("imgList");
+    list.innerHTML = "";
+    data.images.forEach(src=>{
+      let i=document.createElement("img");
+      i.src=src;
+      list.appendChild(i);
+    });
+  }catch(e){
+    document.getElementById("secTitle").innerText = "Error loading data.";
+  }
+}
+
+// ✅ Contest
+let joined = 52290, max = 100000;
+function openContest(){
+  document.getElementById("contestScreen").classList.remove("hidden");
+  let perc = (joined/max)*100;
+  document.getElementById("joinedCount").innerText = joined;
+  document.getElementById("progressBar").style.width = perc+"%";
+}
+function payEntry(){
+  alert("✅ Payment Success (Test Mode)");
+  localStorage.setItem("paidEntry","true");
+  const joinBtn = document.getElementById("joinBtn");
+  joinBtn.disabled = false;
+  joinBtn.style.background="linear-gradient(90deg,#007bff,#00d4ff)";
+  joinBtn.style.cursor="pointer";
+}
+function startQuiz(){
+  if(!localStorage.getItem("paidEntry")){ alert("Please pay first!"); return; }
+  document.getElementById("contestScreen").classList.add("hidden");
+  loadQuiz();
+}
+
+// ✅ Quiz
+let quizData = [], currentQ = 0, score = 0, userAnswers = {};
+async function loadQuiz(){
+  document.getElementById("quizScreen").classList.remove("hidden");
+  const res = await fetch("https://raw.githubusercontent.com/Sajanpreet35/Upsc-quiz-/main/upsc_quiz.json");
+  quizData = await res.json();
+  showQuestion();
+}
+function showQuestion(){
+  const box = document.getElementById("quizContainer");
+  box.innerHTML = "";
+  if(currentQ >= quizData.length){
+    box.innerHTML = `<h3>Your Score: ${score}/${quizData.length}</h3>`;
+    alert(`🎉 Quiz Completed! Your Score: ${score}/${quizData.length}`);
+    return;
+  }
+  const q = quizData[currentQ];
+  const qText = document.createElement("h3");
+  qText.innerText = `Q${currentQ+1}. ${q.question}`;
+  box.appendChild(qText);
+
+  q.options.forEach(opt=>{
+    const btn = document.createElement("button");
+    btn.className="optionBtn";
+    btn.innerText=opt;
+    btn.onclick=()=>{
+      document.querySelectorAll(".optionBtn").forEach(b=>b.classList.remove("selected"));
+      btn.classList.add("selected");
+      userAnswers[currentQ]=opt;
+    };
+    box.appendChild(btn);
+  });
+
+  const nextBtn = document.createElement("button");
+  nextBtn.className="nextBtn";
+  nextBtn.innerText = (currentQ === quizData.length-1) ? "Submit Quiz" : "Next";
+  nextBtn.onclick=()=>{
+    if(!userAnswers[currentQ]){alert("Please select an option!");return;}
+    if(userAnswers[currentQ]===q.correct_answer){score++;}
+    currentQ++;showQuestion();
+  };
+  box.appendChild(nextBtn);
+}
+
+function quitQuiz(){
+  if(confirm("Exit Quiz?")){
+    document.getElementById("quizScreen").classList.add("hidden");
+    document.getElementById("homeScreen").classList.remove("hidden");
+  }
+}
+
+// ✅ Back
+function goBack(){
+  document.getElementById("homeScreen").classList.remove("hidden");
+  document.getElementById("sectionScreen").classList.add("hidden");
+  document.getElementById("contestScreen").classList.add("hidden");
+  document.getElementById("quizScreen").classList.add("hidden");
+}
+function logoutUser(){
+  localStorage.clear();window.location.href="index.html";
+}
+</script>
+</body>
+</html>
