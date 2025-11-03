@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Study Discussion Club</title>
+<style>
+:root { --accent:#6C63FF; --accent2:#00C2A8;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Poppins",sans-serif;}
+body{
+  background:radial-gradient(circle at 50% 20%,#2a2a72 0%,#000 90%);
+  color:white;text-align:center;padding:18px;
+}
+.hidden{display:none;}
+.grid{
+  margin-top:25px;display:grid;grid-template-columns:repeat(2,1fr);gap:16px;
+}
+.card{
+  background:rgba(255,255,255,0.08);
+  padding:18px;border-radius:14px;cursor:pointer;transition:0.25s;
+}
+.card:hover{background:rgba(255,255,255,0.18);}
+.card img{width:70px;height:70px;margin-bottom:6px;}
+.logoutBtn{
+  margin-top:35px;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border:none;padding:12px 22px;border-radius:10px;color:white;font-weight:700;
+  cursor:pointer;
+}
+.backBtn{
+  position:absolute;left:12px;top:12px;border:none;
+  background:rgba(255,255,255,0.13);
+  padding:8px 14px;border-radius:10px;color:white;cursor:pointer;
+}
+#imgList img{
+  width:100%;border-radius:14px;margin-bottom:20px;
+  border:2px solid rgba(255,255,255,0.2);
+}
+input, button {
+  padding:10px;margin:6px;width:90%;max-width:300px;
+  border:none;border-radius:10px;
+}
+input{background:#111;color:white;text-align:center;}
+.startBtn, .nextBtn, .submitBtn{
+  background:linear-gradient(90deg,#ff5858,#ff9e00);
+  color:white;font-weight:700;cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- ✅ HOME SCREEN -->
+<div id="homeScreen">
+  <h2 id="examName">Your Course</h2>
+  <p>Select a learning section</p>
+
+  <div class="grid">
+    <div class="card" onclick="openSection('current')"><img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"><div>Current Affairs</div></div>
+    <div class="card" onclick="openSection('practice')"><img src="https://cdn-icons-png.flaticon.com/512/201/201572.png"><div>Practice Questions</div></div>
+    <div class="card" onclick="openSection('mindmap')"><img src="https://cdn-icons-png.flaticon.com/512/952/952717.png"><div>Mind Maps</div></div>
+    <div class="card" onclick="openSection('interview')"><img src="https://cdn-icons-png.flaticon.com/512/3135/3135810.png"><div>Interview Q&A</div></div>
+    <div class="card" onclick="openSection('books')"><img src="https://cdn-icons-png.flaticon.com/512/942/942748.png"><div>UPSC Book Summary</div></div>
+    <div class="card" onclick="openSection('social')"><img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png"><div>Social Media Material</div></div>
+    <div class="card" onclick="openSection('contest')"><img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png"><div>Contest</div></div>
+  </div>
+
+  <button class="logoutBtn" onclick="logoutUser()">Logout</button>
+</div>
+
+<!-- ✅ SECTION SCREEN -->
+<div id="sectionScreen" class="hidden">
+  <button class="backBtn" onclick="goBack()">⭠ Back</button>
+  <h2 id="secTitle">Loading...</h2>
+  <div id="imgList"></div>
+</div>
+
+<!-- ✅ CONTEST SCREEN -->
+<div id="contestScreen" class="hidden">
+  <button class="backBtn" onclick="goBack()">⭠ Back</button>
+  <h2>🔥 Contest</h2>
+  <div style="background:rgba(255,255,255,0.09);padding:16px;border-radius:14px;margin-top:18px;">
+    <p><strong>Participants Joined:</strong> <span id="joinedCount">0</span> / 100000</p>
+    <div style="width:100%;height:12px;background:#333;border-radius:8px;margin-top:10px;">
+      <div id="progressBar" style="height:100%;background:limegreen;width:0%;border-radius:8px;"></div>
+    </div>
+  </div>
+  <button id="payBtn" class="startBtn" onclick="payEntry()">Pay Entry Fee ₹10</button>
+  <button id="joinBtn" disabled class="startBtn" style="background:#555;">Join Quiz</button>
+</div>
+
+<!-- ✅ QUIZ REGISTRATION SCREEN -->
+<div id="quizRegister" class="hidden">
+  <button class="backBtn" onclick="goBack()">⭠ Back</button>
+  <h2>Contest Quiz</h2>
+  <input id="name" placeholder="Aspirant Name"/><br>
+  <input id="father" placeholder="Father Name"/><br>
+  <input id="mobile" placeholder="Mobile No"/><br>
+  <button class="startBtn" onclick="startQuiz()">Start Quiz</button>
+</div>
+
+<!-- ✅ QUIZ SCREEN -->
+<div id="quizScreen" class="hidden">
+  <button class="backBtn" onclick="goBack()">⭠ Back</button>
+  <h2>Contest Quiz</h2>
+  <div id="quizContainer"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const links = {
+  current: "https://raw.githubusercontent.com/Sajanpreet35/Bighit/main/upsc_currentaffairs.json",
+  practice: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upsc%20practise%20questions.json",
+  mindmap: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/mindmaps.json",
+  interview: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upscinterviewpractisequestions.json",
+  books: "https://raw.githubusercontent.com/Sajanpreet35/Bighit/main/upsc_books.json",
+  social: "https://raw.githubusercontent.com/Sajanpreet35/Bighit/main/social_media_material.json",
+  contest: "NO_JSON"
+};
+document.getElementById("examName").innerText = (localStorage.getItem("selectedExam") || "UPSC") + " Course";
+
+// ✅ SECTION OPEN (with Fallback)
+async function openSection(sec){
+  document.getElementById("homeScreen").classList.add("hidden");
+  if(sec === "contest"){ openContest(); return; }
+  document.getElementById("sectionScreen").classList.remove("hidden");
+
+  let title="Section", images=[];
+  try {
+    const res = await fetch(links[sec]);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    title = data.title || sec.toUpperCase();
+    images = data.images || [];
+  } catch(e){
+    console.warn("⚠️ JSON load fail:", e.message);
+    // fallback demo data
+    title = sec.toUpperCase()+" (Demo)";
+    images = [
+      "https://via.placeholder.com/600x400/333/fff?text="+sec+"+1",
+      "https://via.placeholder.com/600x400/444/fff?text="+sec+"+2",
+      "https://via.placeholder.com/600x400/555/fff?text="+sec+"+3"
+    ];
+  }
+
+  document.getElementById("secTitle").innerText = title;
+  const list = document.getElementById("imgList");
+  list.innerHTML="";
+  images.forEach(src=>{
+    const i=document.createElement("img");
+    i.src=src;
+    list.appendChild(i);
+  });
+}
+
+// ✅ Contest
+let joined=52290,max=100000;
+function openContest(){
+  document.getElementById("contestScreen").classList.remove("hidden");
+  let percent=(joined/max)*100;
+  document.getElementById("joinedCount").innerText=joined;
+  document.getElementById("progressBar").style.width=percent+"%";
+}
+function payEntry(){
+  alert("✅ Payment Success (Demo)");
+  localStorage.setItem("paidEntry","true");
+  let j=document.getElementById("joinBtn");
+  j.disabled=false;
+  j.style.background="linear-gradient(90deg,#007bff,#00d4ff)";
+  j.onclick=()=>openQuizRegister();
+}
+
+// ✅ QUIZ REGISTRATION & QUIZ
+function openQuizRegister(){
+  document.getElementById("contestScreen").classList.add("hidden");
+  document.getElementById("quizRegister").classList.remove("hidden");
+}
+let quizData=[], currentQ=0, score=0;
+async function startQuiz(){
+  let name=document.getElementById("name").value.trim();
+  let father=document.getElementById("father").value.trim();
+  let mobile=document.getElementById("mobile").value.trim();
+  if(!name||!father||!mobile){alert("Please fill all details");return;}
+  localStorage.setItem("quizUser",JSON.stringify({name,father,mobile}));
+
+  document.getElementById("quizRegister").classList.add("hidden");
+  document.getElementById("quizScreen").classList.remove("hidden");
+
+  try{
+    const res=await fetch("https://raw.githubusercontent.com/Sajanpreet35/Upsc-quiz-/main/upsc_quiz.json");
+    quizData=await res.json();
+  }catch{
+    // demo data fallback
+    quizData=[
+      {image:"https://via.placeholder.com/400x200?text=Q1",options:["A","B","C","D"],correct:"A"},
+      {image:"https://via.placeholder.com/400x200?text=Q2",options:["True","False"],correct:"True"}
+    ];
+  }
+  showQuestion();
+}
+function showQuestion(){
+  const q=quizData[currentQ];
+  const div=document.getElementById("quizContainer");
+  div.innerHTML=`
+  <div style="background:rgba(255,255,255,0.1);padding:16px;border-radius:14px;">
+    <img src="${q.image}" style="width:100%;border-radius:10px;margin-bottom:10px;">
+    ${q.options.map((o,i)=>`<div><input type='radio' name='ans' value='${o}' id='o${i}'><label for='o${i}'> ${o}</label></div>`).join("")}
+    <br>
+    ${currentQ<quizData.length-1?
+      `<button class='nextBtn' onclick='nextQuestion()'>Next</button>`:
+      `<button class='submitBtn' onclick='submitQuiz()'>Submit Quiz</button>`}
+  </div>`;
+}
+function nextQuestion(){
+  const ans=document.querySelector("input[name='ans']:checked");
+  if(!ans){alert("Select one option");return;}
+  if(ans.value===quizData[currentQ].correct)score++;
+  currentQ++;
+  showQuestion();
+}
+async function submitQuiz(){
+  const ans=document.querySelector("input[name='ans']:checked");
+  if(ans&&ans.value===quizData[currentQ].correct)score++;
+  const user=JSON.parse(localStorage.getItem("quizUser"));
+  alert(`Quiz Completed!\nScore: ${score}/${quizData.length}`);
+
+  const supabase=window.supabase.createClient(
+    "https://zkqegvyxmtwyznizuhjt.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprcWVndnl4bXR3eXpuaXp1aGp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MjkxMDYsImV4cCI6MjA3NjIwNTEwNn0.hC01DVzpgFg_cAVBs-Q6dalvUh1oU5OJ5NxkoEVY36o"
+  );
+  await supabase.from("responses").insert({
+    name:user.name,father:user.father,mobile:user.mobile,
+    score:score,total:quizData.length
+  });
+
+  document.getElementById("quizScreen").classList.add("hidden");
+  document.getElementById("homeScreen").classList.remove("hidden");
+}
+
+// ✅ BACK & LOGOUT
+function goBack(){
+  document.querySelectorAll("div[id$='Screen']").forEach(d=>d.classList.add("hidden"));
+  document.getElementById("homeScreen").classList.remove("hidden");
+}
+function logoutUser(){
+  localStorage.clear();
+  window.location.href="index.html";
+}
+</script>
+</body>
+</html>
