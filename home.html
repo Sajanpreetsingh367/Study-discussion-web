@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Study Discussion Club</title>
+
+<style>
+:root { --accent:#6C63FF; --accent2:#00C2A8;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Poppins",sans-serif;}
+body{
+  background:radial-gradient(circle at 50% 20%,#2a2a72 0%,#000 90%);
+  color:white;text-align:center;padding:18px;
+}
+.hidden{display:none;}
+.grid{margin-top:25px;display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+.card{background:rgba(255,255,255,0.08);padding:18px;border-radius:14px;cursor:pointer;transition:0.25s;}
+.card:hover{background:rgba(255,255,255,0.18);}
+.card img{width:70px;height:70px;margin-bottom:6px;}
+.logoutBtn{margin-top:35px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;padding:12px 22px;border-radius:10px;color:white;font-weight:700;cursor:pointer;}
+.backBtn{position:absolute;left:12px;top:12px;border:none;background:rgba(255,255,255,0.13);padding:8px 14px;border-radius:10px;color:white;cursor:pointer;}
+input{width:100%;padding:10px;border-radius:8px;border:none;margin:6px 0;font-size:15px;}
+.option{background:rgba(255,255,255,0.15);padding:10px;margin-top:8px;border-radius:10px;cursor:pointer;transition:0.2s;}
+.option:hover{background:rgba(255,255,255,0.25);}
+.option.selected{background:rgba(0,255,255,0.3);}
+button{cursor:pointer;}
+</style>
+</head>
+
+<body>
+
+<!-- ✅ HOME SCREEN -->
+<div id="homeScreen">
+  <h2 id="examName">Your Course</h2>
+  <p>Select a learning section</p>
+  <div class="grid">
+    <div class="card" onclick="openSection('current')">
+      <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"><div>Current Affairs</div>
+    </div>
+    <div class="card" onclick="openSection('practice')">
+      <img src="https://cdn-icons-png.flaticon.com/512/201/201572.png"><div>Practice Questions</div>
+    </div>
+    <div class="card" onclick="openSection('mindmap')">
+      <img src="https://cdn-icons-png.flaticon.com/512/952/952717.png"><div>Mind Maps</div>
+    </div>
+    <div class="card" onclick="openSection('interview')">
+      <img src="https://cdn-icons-png.flaticon.com/512/3135/3135810.png"><div>Interview Q&A</div>
+    </div>
+    <div class="card" onclick="openSection('books')">
+      <img src="https://cdn-icons-png.flaticon.com/512/942/942748.png"><div>UPSC Book Summary</div>
+    </div>
+    <div class="card" onclick="openSection('social')">
+      <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png"><div>Social Media Material</div>
+    </div>
+    <div class="card" onclick="openSection('contest')">
+      <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png"><div>Contest</div>
+    </div>
+  </div>
+  <button class="logoutBtn" onclick="logoutUser()">Logout</button>
+</div>
+
+<!-- ✅ CONTEST SCREEN -->
+<div id="contestScreen" class="hidden">
+  <button class="backBtn" onclick="goBack()">⭠ Back</button>
+  <h2>🔥 UPSC Contest</h2>
+
+  <div style="background:rgba(255,255,255,0.08);padding:16px;border-radius:14px;margin-top:18px;">
+    <input id="aspirantName" placeholder="Aspirant Name"/>
+    <input id="fatherName" placeholder="Father Name"/>
+    <input id="mobileNo" placeholder="Mobile Number"/>
+  </div>
+
+  <button id="startQuizBtn" 
+    style="margin-top:25px;background:linear-gradient(90deg,#6C63FF,#00C2A8);
+    border:none;padding:12px 22px;border-radius:10px;color:white;font-weight:700;"
+    onclick="startQuiz()">
+    Start Quiz
+  </button>
+</div>
+
+<!-- ✅ QUIZ SCREEN -->
+<div id="quizScreen" class="hidden">
+  <button class="backBtn" onclick="goBack()">⭠ Back</button>
+  <h2>🧠 UPSC Quiz</h2>
+  <div id="quizContainer"></div>
+</div>
+
+<script type="module">
+// ✅ Supabase setup
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const supabaseUrl = "https://zkqegvyxmtwyznizuhjt.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprcWVndnl4bXR3eXpuaXp1aGp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MjkxMDYsImV4cCI6MjA3NjIwNTEwNn0.hC01DVzpgFg_cAVBs-Q6dalvUh1oU5OJ5NxkoEVY36o";
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// ✅ Quiz JSON link
+const quizLink = "https://raw.githubusercontent.com/Sajanpreet35/Upsc-quiz-/main/upsc_quiz.json";
+
+let quizData = [];
+let currentIndex = 0;
+let score = 0;
+let userAnswers = {};
+
+// ✅ NAVIGATION
+function openSection(sec){
+  document.getElementById("homeScreen").classList.add("hidden");
+  if(sec==="contest"){
+    document.getElementById("contestScreen").classList.remove("hidden");
+  }
+}
+
+async function startQuiz(){
+  const name = document.getElementById("aspirantName").value.trim();
+  const father = document.getElementById("fatherName").value.trim();
+  const mobile = document.getElementById("mobileNo").value.trim();
+
+  if(!name || !father || !mobile){
+    alert("Please fill all details!");
+    return;
+  }
+
+  // Hide contest, show quiz
+  document.getElementById("contestScreen").classList.add("hidden");
+  document.getElementById("quizScreen").classList.remove("hidden");
+
+  const res = await fetch(quizLink);
+  const data = await res.json();
+  quizData = data.questions;
+  currentIndex = 0;
+  score = 0;
+  showQuestion();
+}
+
+function showQuestion(){
+  const q = quizData[currentIndex];
+  const box = document.getElementById("quizContainer");
+  box.innerHTML = `
+    <div class="quizBox">
+      <h3>Q${currentIndex+1}/${quizData.length}</h3>
+      <img src="${q.image}" style="width:100%;border-radius:12px;margin:10px 0;">
+      ${q.options.map(opt => `<div class='option' onclick='selectOption("${opt}")'>${opt}</div>`).join('')}
+      <button id="nextBtn" style="margin-top:20px;background:linear-gradient(90deg,#6C63FF,#00C2A8);
+        border:none;padding:12px 22px;border-radius:10px;color:white;font-weight:700;"
+        onclick="nextQuestion()">
+        ${currentIndex === quizData.length - 1 ? "Submit Quiz" : "Next Question"}
+      </button>
+    </div>`;
+}
+
+window.selectOption = function(opt){
+  const options = document.querySelectorAll(".option");
+  options.forEach(o => o.classList.remove("selected"));
+  event.target.classList.add("selected");
+  userAnswers[currentIndex] = opt;
+}
+
+window.nextQuestion = async function(){
+  const q = quizData[currentIndex];
+  if(!userAnswers[currentIndex]){
+    alert("Please select an option!");
+    return;
+  }
+
+  if(userAnswers[currentIndex] === q.answer){
+    score++;
+  }
+
+  if(currentIndex < quizData.length - 1){
+    currentIndex++;
+    showQuestion();
+  } else {
+    // ✅ Submit Quiz
+    alert(`✅ Quiz Submitted!\nYour Score: ${score}/${quizData.length}`);
+    await supabase.from("responses").insert({
+      aspirant_name: document.getElementById("aspirantName").value,
+      father_name: document.getElementById("fatherName").value,
+      mobile: document.getElementById("mobileNo").value,
+      score: score
+    });
+    goBack();
+  }
+}
+
+// ✅ Back + Logout
+function goBack(){
+  document.querySelectorAll("div").forEach(d=>d.classList.add("hidden"));
+  document.getElementById("homeScreen").classList.remove("hidden");
+}
+function logoutUser(){
+  localStorage.clear();
+  window.location.href="index.html";
+}
+</script>
+</body>
+</html>
