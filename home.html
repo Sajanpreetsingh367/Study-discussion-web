@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UPSC Study Discussion Club</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root { --accent:#6C63FF; --accent2:#00C2A8; }
+body {
+  background: radial-gradient(circle at 50% 20%, #1e1e3f 0%, #000 100%);
+  color: white;
+  font-family: "Poppins", sans-serif;
+  margin: 0; padding: 0; text-align: center;
+}
+.hidden { display:none; }
+h2 { margin-top: 15px; }
+
+.card-grid {
+  display:grid; grid-template-columns:repeat(2,1fr);
+  gap:16px; margin:25px;
+}
+.card {
+  background:rgba(255,255,255,0.08);
+  padding:18px; border-radius:14px; cursor:pointer;
+  transition:0.3s; backdrop-filter:blur(6px);
+}
+.card:hover { background:rgba(255,255,255,0.18); transform:scale(1.03); }
+.card img { width:70px; height:70px; margin-bottom:8px; }
+
+button {
+  cursor:pointer; border:none; font-weight:600;
+  border-radius:10px; padding:12px 22px; color:white;
+}
+.primary { background:linear-gradient(90deg,#ff5858,#ff9e00); }
+.secondary { background:linear-gradient(90deg,#007bff,#00d4ff); }
+
+.notice {
+  background:rgba(255,255,255,0.09);
+  padding:14px; border-radius:10px;
+  margin:16px; font-size:13px; color:#e0e0e0;
+  text-align:left;
+}
+
+.inputBox {
+  width:80%; margin:10px auto; display:block;
+  padding:12px; border-radius:10px;
+  border:none; text-align:center;
+}
+
+.option {
+  background:rgba(255,255,255,0.08);
+  margin:8px 0; padding:10px;
+  border-radius:8px; cursor:pointer; transition:0.2s;
+}
+.option:hover { background:rgba(255,255,255,0.18); }
+
+.backBtn {
+  position:absolute; left:12px; top:12px;
+  border:none; background:rgba(255,255,255,0.13);
+  padding:8px 14px; border-radius:10px; color:white;
+}
+
+.progress-container {
+  width:90%; background:#333; height:12px;
+  border-radius:8px; margin:15px auto;
+}
+.progress-bar { height:100%; background:limegreen; width:0%; border-radius:8px; }
+
+.data-card {
+  background:rgba(255,255,255,0.1);
+  padding:16px; border-radius:10px;
+  margin:10px; text-align:left;
+}
+.data-card img { width:100%; border-radius:10px; margin-top:8px; }
+</style>
+</head>
+<body>
+
+<!-- HOME SCREEN -->
+<div id="homeScreen">
+  <h2>📘 UPSC Study Discussion Club</h2>
+  <p>Select a section to explore</p>
+  <div class="card-grid">
+    <div class="card" onclick="openSection('current')"><img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"><div>Current Affairs</div></div>
+    <div class="card" onclick="openSection('practice')"><img src="https://cdn-icons-png.flaticon.com/512/201/201572.png"><div>Practice Questions</div></div>
+    <div class="card" onclick="openSection('mindmap')"><img src="https://cdn-icons-png.flaticon.com/512/952/952717.png"><div>Mind Maps</div></div>
+    <div class="card" onclick="openSection('interview')"><img src="https://cdn-icons-png.flaticon.com/512/3135/3135810.png"><div>Interview Q&A</div></div>
+    <div class="card" onclick="openSection('contest')"><img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png"><div>Contest</div></div>
+  </div>
+</div>
+
+<!-- DATA VIEW SCREEN -->
+<div id="dataScreen" class="hidden">
+  <button class="backBtn" onclick="goHome()">⭠ Back</button>
+  <h2 id="sectionTitle"></h2>
+  <div id="dataContainer"></div>
+</div>
+
+<script>
+const urls = {
+  current: "https://cdn.jsdelivr.net/gh/avnoordeepsingh733-svg/Avnoor/currentaffairs.json",
+  practice: "https://cdn.jsdelivr.net/gh/avnoordeepsingh733-svg/Avnoor/upsc practise questions.json",
+  mindmap: "https://cdn.jsdelivr.net/gh/avnoordeepsingh733-svg/Avnoor/mindmaps.json",
+  interview: "https://cdn.jsdelivr.net/gh/avnoordeepsingh733-svg/Avnoor/upscinterviewpractisequestions.json",
+};
+
+async function openSection(sec){
+  if(sec==="contest"){
+    // Contest code will be in Part 2
+    return;
+  }
+
+  document.getElementById("homeScreen").classList.add("hidden");
+  document.getElementById("dataScreen").classList.remove("hidden");
+
+  const titleMap = {
+    current: "📰 Current Affairs",
+    practice: "🧠 Practice Questions",
+    mindmap: "🗺️ Mind Maps",
+    interview: "💬 Interview Q&A"
+  };
+  document.getElementById("sectionTitle").innerText = titleMap[sec] || "Section";
+
+  const res = await fetch(urls[sec]);
+  const data = await res.json();
+  const container = document.getElementById("dataContainer");
+  container.innerHTML = "";
+
+  data.forEach(item=>{
+    const div = document.createElement("div");
+    div.className="data-card";
+    div.innerHTML = `<h3>${item.title || item.question || "Untitled"}</h3>
+                     ${item.description ? `<p>${item.description}</p>` : ""}
+                     ${item.image ? `<img src='${item.image}' alt='image'>` : ""}`;
+    container.appendChild(div);
+  });
+}
+
+function goHome(){
+  document.getElementById("dataScreen").classList.add("hidden");
+  document.getElementById("homeScreen").classList.remove("hidden");
+}
+</script>
+</body>
+</html>
