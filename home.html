@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UPSC Study Discussion Club</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root { --accent:#6C63FF; --accent2:#00C2A8; }
+body {
+  background: radial-gradient(circle at 50% 20%, #2a2a72 0%, #000 90%);
+  color: white;
+  font-family: "Poppins", sans-serif;
+  text-align: center;
+  margin: 0;
+  padding: 20px;
+}
+.hidden { display: none; }
+h2 { margin-bottom: 10px; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-top: 25px;
+}
+.card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.card:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.card img {
+  width: 70px;
+  height: 70px;
+  margin-bottom: 8px;
+}
+.logoutBtn {
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border: none;
+  padding: 12px 22px;
+  border-radius: 10px;
+  color: white;
+  margin-top: 25px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.backBtn {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  position: absolute;
+  left: 12px;
+  top: 12px;
+}
+.sectionHeader {
+  background: rgba(255,255,255,0.15);
+  padding: 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.notice {
+  background: rgba(255,255,255,0.1);
+  padding: 12px;
+  border-radius: 10px;
+  margin-top: 16px;
+  font-size: 14px;
+  color: #ddd;
+}
+input {
+  width: 80%;
+  padding: 10px;
+  margin: 8px;
+  border: none;
+  border-radius: 8px;
+  text-align: center;
+}
+.option {
+  background: rgba(255,255,255,0.08);
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.option:hover { background: rgba(255,255,255,0.2); }
+.timerBox {
+  background: rgba(255,255,255,0.1);
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+</style>
+</head>
+<body>
+
+<!-- ✅ HOME -->
+<div id="homeScreen">
+  <h2>Study Discussion Club</h2>
+  <p>Select a section to explore</p>
+  <div id="sectionsGrid" class="grid"></div>
+</div>
+
+<!-- ✅ SECTION SCREEN -->
+<div id="sectionScreen" class="hidden">
+  <button class="backBtn" onclick="goHome()">⭠ Back</button>
+  <div class="sectionHeader" id="secTitle"></div>
+  <div id="imgList"></div>
+</div>
+
+<!-- ✅ CONTEST SCREEN -->
+<div id="contestScreen" class="hidden">
+  <button class="backBtn" onclick="goHome()">⭠ Back</button>
+  <div class="sectionHeader">Contest</div>
+  <p>Participants Joined: <span id="joinedCount">0</span></p>
+  <div class="notice">
+    Dear user, based on your scores you may be shortlisted.
+    Users scoring above <b>90 marks</b> will be considered.
+    The prize pool depends on total participants minus <b>2% platform fee</b>.
+  </div>
+  <button class="logoutBtn" onclick="openRegistration()">Register Now</button>
+</div>
+
+<!-- ✅ REGISTRATION SCREEN -->
+<div id="registerScreen" class="hidden">
+  <button class="backBtn" onclick="goBackContest()">⭠ Back</button>
+  <div class="sectionHeader">Registration Form</div>
+  <input id="name" placeholder="Full Name">
+  <input id="father" placeholder="Father's Name">
+  <input id="mobile" placeholder="Mobile Number">
+  <div class="notice">
+    Dear user, please submit correct details. If you win, you’ll be contacted using these details.
+    Quiz duration: <b>6 minutes</b>.
+  </div>
+  <button class="logoutBtn" onclick="submitDetails()">Submit & Start Quiz</button>
+</div>
+
+<!-- ✅ QUIZ SCREEN -->
+<div id="quizScreen" class="hidden">
+  <div class="sectionHeader">UPSC Quiz</div>
+  <div class="timerBox">⏱ <span id="timer">06:00</span></div>
+  <div id="quizBox"></div>
+</div>
+
+<!-- ✅ RESULT SCREEN -->
+<div id="resultScreen" class="hidden">
+  <div class="sectionHeader">Quiz Completed!</div>
+  <h3 id="scoreText"></h3>
+  <button onclick="goHome()" class="logoutBtn">Back to Home</button>
+</div>
+
+<script>
+// ✅ Supabase setup
+const supabase = window.supabase.createClient(
+  "https://zkqegvyxmtwyznizuhjt.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprcWVndnl4bXR3eXpuaXp1aGp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MjkxMDYsImV4cCI6MjA3NjIwNTEwNn0.hC01DVzpgFg_cAVBs-Q6dalvUh1oU5OJ5NxkoEVY36o"
+);
+
+// ✅ Raw GitHub links
+const rawLinks = {
+  sections: "https://raw.githubusercontent.com/Sajanpreet35/Bighit/main/sections.json",
+  quiz: "https://raw.githubusercontent.com/Sajanpreet35/Upsc-quiz-/main/upsc_quiz.json"
+};
+
+// ✅ Load home sections
+async function loadSections() {
+  try {
+    const res = await fetch(rawLinks.sections);
+    const data = await res.json();
+    const grid = document.getElementById("sectionsGrid");
+    grid.innerHTML = "";
+    data.forEach(sec => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `<img src="${sec.icon}" alt="${sec.name}"><div>${sec.name}</div>`;
+      div.onclick = () => openSection(sec.id);
+      grid.appendChild(div);
+    });
+  } catch (e) {
+    console.error("Error loading sections:", e);
+  }
+}
+
+// ✅ Section handler
+async function openSection(id) {
+  document.getElementById("homeScreen").classList.add("hidden");
+  if (id === "contest") {
+    openContest();
+    return;
+  }
+  const secScreen = document.getElementById("sectionScreen");
+  secScreen.classList.remove("hidden");
+  document.getElementById("secTitle").innerText = id.toUpperCase();
+  const list = document.getElementById("imgList");
+  list.innerHTML = `<p>Images and materials will load here from GitHub (for ${id}).</p>`;
+}
+
+// ✅ Contest
+async function openContest() {
+  document.getElementById("contestScreen").classList.remove("hidden");
+  const { data } = await supabase.from("aspirants").select("*");
+  document.getElementById("joinedCount").innerText = data ? data.length : 0;
+}
+
+// ✅ Registration
+function openRegistration() {
+  document.getElementById("contestScreen").classList.add("hidden");
+  document.getElementById("registerScreen").classList.remove("hidden");
+}
+
+async function submitDetails() {
+  const name = document.getElementById("name").value.trim();
+  const father = document.getElementById("father").value.trim();
+  const mobile = document.getElementById("mobile").value.trim();
+  if (!name || !father || !mobile) {
+    alert("Please fill all details correctly.");
+    return;
+  }
+  await supabase.from("aspirants").insert([{ name, father_name: father, mobile }]);
+  startQuiz();
+}
+
+// ✅ Quiz Logic
+let quizData = [], current = 0, score = 0, seconds = 360, timerInt;
+
+async function startQuiz() {
+  document.getElementById("registerScreen").classList.add("hidden");
+  document.getElementById("quizScreen").classList.remove("hidden");
+  const res = await fetch(rawLinks.quiz);
+  quizData = await res.json();
+  score = 0; current = 0; seconds = 360;
+  startTimer();
+  showQuestion();
+}
+
+function startTimer() {
+  timerInt = setInterval(() => {
+    seconds--;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    document.getElementById("timer").textContent = `${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+    if (seconds <= 0) finishQuiz();
+  }, 1000);
+}
+
+function showQuestion() {
+  const q = quizData[current];
+  const box = document.getElementById("quizBox");
+  if (!q) return finishQuiz();
+  box.innerHTML = `<h3>Q${current + 1}. ${q.question}</h3>`;
+  for (const key in q.options) {
+    const opt = document.createElement("div");
+    opt.className = "option";
+    opt.innerText = `${key}. ${q.options[key]}`;
+    opt.onclick = () => { if (key === q.correct_answer) score++; nextQuestion(); };
+    box.appendChild(opt);
+  }
+}
+
+function nextQuestion() {
+  current++;
+  if (current < quizData.length) showQuestion();
+  else finishQuiz();
+}
+
+async function finishQuiz() {
+  clearInterval(timerInt);
+  document.getElementById("quizScreen").classList.add("hidden");
+  document.getElementById("resultScreen").classList.remove("hidden");
+  document.getElementById("scoreText").innerText = `Your score: ${score}/${quizData.length}`;
+  await supabase.from("contest_result").insert([{ score }]);
+}
+
+// ✅ Navigation
+function goBackContest() {
+  document.getElementById("registerScreen").classList.add("hidden");
+  document.getElementById("contestScreen").classList.remove("hidden");
+}
+function goHome() {
+  document.querySelectorAll("div").forEach(d => d.classList.add("hidden"));
+  document.getElementById("homeScreen").classList.remove("hidden");
+}
+
+// ✅ Load Home
+loadSections();
+</script>
+</body>
+</html>
