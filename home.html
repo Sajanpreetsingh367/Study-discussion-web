@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UPSC Study Discussion Club - Home</title>
+<style>
+body {
+  background: radial-gradient(circle at 50% 20%, #1e1e3f 0%, #000 100%);
+  color: white;
+  font-family: "Poppins", sans-serif;
+  margin: 0; padding: 0; text-align: center;
+}
+h2 { margin-top: 15px; }
+
+.card-grid {
+  display: grid; grid-template-columns: repeat(2,1fr);
+  gap: 16px; margin: 25px;
+}
+.card {
+  background: rgba(255,255,255,0.08);
+  padding: 18px; border-radius: 14px; cursor: pointer;
+  transition: 0.3s; backdrop-filter: blur(6px);
+}
+.card:hover { background: rgba(255,255,255,0.18); transform: scale(1.03); }
+.card img { width: 70px; height: 70px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<h2>📘 UPSC Study Discussion Club</h2>
+<p>Select a section to explore</p>
+
+<div class="card-grid">
+  <div class="card" onclick="openSection('current')">
+    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" 
+         onerror="handleImageError(this, 'Current Affairs')">
+    <div>Current Affairs</div>
+  </div>
+  
+  <div class="card" onclick="openSection('practice')">
+    <img src="https://cdn-icons-png.flaticon.com/512/201/201572.png" 
+         onerror="handleImageError(this, 'Practice Questions')">
+    <div>Practice Questions</div>
+  </div>
+  
+  <div class="card" onclick="openSection('mindmap')">
+    <img src="https://cdn-icons-png.flaticon.com/512/952/952717.png" 
+         onerror="handleImageError(this, 'Mind Maps')">
+    <div>Mind Maps</div>
+  </div>
+  
+  <div class="card" onclick="openSection('interview')">
+    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135810.png" 
+         onerror="handleImageError(this, 'Interview Q&A')">
+    <div>Interview Q&A</div>
+  </div>
+  
+  <div class="card" onclick="openSection('contest')">
+    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" 
+         onerror="handleImageError(this, 'Contest')">
+    <div>Contest</div>
+  </div>
+</div>
+
+<script>
+// Function to handle image load errors
+function handleImageError(imgElement, name) {
+  console.error(`Image for "${name}" failed to load. URL: ${imgElement.src}`);
+  alert(`Image for "${name}" failed to load. Check URL or internet connection.`);
+  imgElement.style.display = 'none'; // Hide broken image
+}
+
+// Dummy openSection function for testing
+function openSection(sectionName) {
+  alert(`You clicked on "${sectionName}" section.`);
+}
+</script>
+
+</body>
+</html>
