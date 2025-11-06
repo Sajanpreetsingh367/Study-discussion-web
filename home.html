@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Study Discussion Club</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root { --accent:#6C63FF; --accent2:#00C2A8;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Poppins",sans-serif;}
+body{
+  background:radial-gradient(circle at 50% 20%,#2a2a72 0%,#000 90%);
+  color:white;text-align:center;padding:18px;
+}
+.hidden{display:none;}
+.grid{
+  margin-top:25px;display:grid;grid-template-columns:repeat(2,1fr);gap:16px;
+}
+.card{
+  background:rgba(255,255,255,0.08);
+  padding:18px;border-radius:14px;cursor:pointer;transition:0.25s;
+}
+.card:hover{background:rgba(255,255,255,0.18);}
+.card img{width:70px;height:70px;margin-bottom:6px;}
+.logoutBtn{
+  margin-top:35px;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border:none;padding:12px 22px;border-radius:10px;color:white;font-weight:700;
+  cursor:pointer;
+}
+.backBtn{
+  position:absolute;left:12px;top:12px;border:none;
+  background:rgba(255,255,255,0.13);
+  padding:8px 14px;border-radius:10px;color:white;cursor:pointer;
+}
+#imgList img{
+  width:100%;border-radius:14px;margin-bottom:20px;
+  border:2px solid rgba(255,255,255,0.2);
+}
+.optionBtn{
+  display:block;width:100%;margin:8px 0;padding:10px;
+  border:none;border-radius:10px;background:rgba(255,255,255,0.15);
+  color:white;font-weight:600;cursor:pointer;transition:0.2s;
+}
+.optionBtn:hover{background:rgba(255,255,255,0.3);}
+.optionBtn.selected{background:linear-gradient(90deg,#00C2A8,#6C63FF);}
+.nextBtn{
+  margin-top:20px;background:linear-gradient(90deg,#007bff,#00d4ff);
+  border:none;padding:12px 22px;border-radius:10px;
+  color:white;font-weight:700;cursor:pointer;
+}
+.inputBox{
+  width:80%;margin:10px auto;display:block;padding:10px;
+  border-radius:10px;border:none;text-align:center;
+}
+.notice{
+  background:rgba(255,255,255,0.08);
+  margin:10px auto;padding:10px;width:85%;border-radius:10px;font-size:14px;
+}
+.timer{
+  background:rgba(255,255,255,0.15);
+  display:inline-block;padding:8px 16px;border-radius:10px;margin:10px 0;
+}
+</style>
+</head>
+<body>
+
+<!-- ✅ HOME SCREEN -->
+<div id="homeScreen">
+  <h2 id="examName">Your Course</h2>
+  <p>Select a learning section</p>
+
+  <div class="grid">
+    <div class="card" onclick="openSection('current')">
+      <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+      <div>Current Affairs</div>
+    </div>
+    <div class="card" onclick="openSection('practice')">
+      <img src="https://cdn-icons-png.flaticon.com/512/201/201572.png">
+      <div>Practice Questions</div>
+    </div>
+    <div class="card" onclick="openSection('mindmap')">
+      <img src="https://cdn-icons-png.flaticon.com/512/952/952717.png">
+      <div>Mind Maps</div>
+    </div>
+    <div class="card" onclick="openSection('interview')">
+      <img src="https://cdn-icons-png.flaticon.com/512/3135/3135810.png">
+      <div>Interview Q&A</div>
+    </div>
+    <div class="card" onclick="openSection('books')">
+      <img src="https://cdn-icons-png.flaticon.com/512/942/942748.png">
+      <div>UPSC Book Summary</div>
+    </div>
+    <div class="card" onclick="openSection('social')">
+      <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png">
+      <div>Social Media Material</div>
+    </div>
+    <div class="card" onclick="openSection('contest')">
+      <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png">
+      <div>Contest</div>
+    </div>
+  </div>
+  <button class="logoutBtn" onclick="logoutUser()">Logout</button>
+</div>
+
+<!-- ✅ SECTION SCREEN -->
+<div id="sectionScreen" class="hidden">
+  <button class="backBtn" onclick="goBack()">⭠ Back</button>
+  <h2 id="secTitle">Loading...</h2>
+  <div id="imgList"></div>
+</div>
+
+<!-- ✅ CONTEST SCREEN -->
+<div id="contestScreen" class="hidden">
+  <button class="backBtn" onclick="goBack()">⭠ Back</button>
+  <h2>🔥 Contest</h2>
+
+  <div class="notice">
+    Based on your quiz scores, candidates scoring above 90 will be shortlisted.
+    The shortlisted list and image will appear in the result section.
+  </div>
+
+  <input type="text" id="fullName" class="inputBox" placeholder="Full Name" />
+  <input type="text" id="fatherName" class="inputBox" placeholder="Father's Name" />
+  <input type="tel" id="mobileNumber" class="inputBox" placeholder="Mobile Number" />
+
+  <button class="logoutBtn" onclick="payAndStart()">Pay ₹10 & Start Quiz</button>
+</div>
+
+<!-- ✅ QUIZ SCREEN -->
+<div id="quizScreen" class="hidden">
+  <button class="backBtn" onclick="quitQuiz()">⭠ Exit</button>
+  <div class="timer" id="timer">⏱ 06:00</div>
+  <h2>🧠 Quiz Time</h2>
+  <div id="quizContainer" style="margin-top:20px;"></div>
+</div>
+
+<script>
+// ✅ Supabase setup
+const SUPABASE_URL = "https://YOUR_PROJECT_URL.supabase.co";
+const SUPABASE_KEY = "YOUR_ANON_KEY";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ✅ JSON Links
+const links = {
+  current: "https://raw.githubusercontent.com/Sajanpreet35/Bighit/main/upsc_currentaffairs.json",
+  practice: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upsc%20practise%20questions.json",
+  mindmap: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/mindmaps.json",
+  interview: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/upscinterviewpractisequestions.json",
+  books: "https://raw.githubusercontent.com/Sajanpreet35/Bighit/main/upsc_books.json",
+  social: "https://raw.githubusercontent.com/Sajanpreet35/Bighit/main/social_media_material.json",
+  contest: "NO_JSON"
+};
+
+// ✅ Open Section
+async function openSection(sec){
+  document.getElementById("homeScreen").classList.add("hidden");
+  if(sec === "contest"){ openContest(); return; }
+
+  document.getElementById("sectionScreen").classList.remove("hidden");
+  try{
+    const data = await fetch(links[sec]).then(r=>r.json());
+    document.getElementById("secTitle").innerText = data.title;
+    const list = document.getElementById("imgList");
+    list.innerHTML = "";
+    data.images.forEach(src=>{
+      const i=document.createElement("img");
+      i.src=src;
+      list.appendChild(i);
+    });
+  }catch{
+    document.getElementById("secTitle").innerText = "Failed to load data.";
+  }
+}
+
+// ✅ Contest Screen
+function openContest(){
+  document.getElementById("contestScreen").classList.remove("hidden");
+}
+
+// ✅ Pay & Start
+async function payAndStart(){
+  const full = document.getElementById("fullName").value.trim();
+  const father = document.getElementById("fatherName").value.trim();
+  const mobile = document.getElementById("mobileNumber").value.trim();
+
+  if(!full || !father || !mobile){
+    alert("Please fill all details before starting!");
+    return;
+  }
+
+  alert("✅ Payment Success (Demo Mode)");
+  await supabaseClient.from("aspirants").insert([{full_name:full, father_name:father, mobile:mobile}]);
+  document.getElementById("contestScreen").classList.add("hidden");
+  startQuiz();
+}
+
+// ✅ Quiz Logic
+let quizData=[],currentQ=0,score=0,userAnswers={},timer=360,timerInterval;
+
+async function startQuiz(){
+  document.getElementById("quizScreen").classList.remove("hidden");
+  const res = await fetch("https://raw.githubusercontent.com/Sajanpreet35/Upsc-quiz-/main/upsc_quiz.json");
+  quizData = await res.json();
+  startTimer();
+  showQuestion();
+}
+
+function startTimer(){
+  const t = document.getElementById("timer");
+  timerInterval = setInterval(()=>{
+    timer--;
+    const min = String(Math.floor(timer/60)).padStart(2,'0');
+    const sec = String(timer%60).padStart(2,'0');
+    t.innerText = `⏱ ${min}:${sec}`;
+    if(timer<=0){clearInterval(timerInterval); finishQuiz();}
+  },1000);
+}
+
+function showQuestion(){
+  const c = document.getElementById("quizContainer");
+  c.innerHTML = "";
+  if(currentQ >= quizData.length){ finishQuiz(); return; }
+
+  const q = quizData[currentQ];
+  const img = document.createElement("img");
+  img.src = q.question_image; img.style.width="100%"; img.style.borderRadius="10px";
+  c.appendChild(img);
+
+  q.options.forEach(opt=>{
+    const btn = document.createElement("button");
+    btn.className="optionBtn"; btn.innerText=opt;
+    btn.onclick=()=>{
+      document.querySelectorAll(".optionBtn").forEach(b=>b.classList.remove("selected"));
+      btn.classList.add("selected");
+      userAnswers[currentQ]=opt;
+    };
+    c.appendChild(btn);
+  });
+
+  const next=document.createElement("button");
+  next.className="nextBtn";
+  next.innerText = currentQ===quizData.length-1 ? "Submit" : "Next";
+  next.onclick=()=>{
+    if(!userAnswers[currentQ]) return alert("Select an option first!");
+    if(userAnswers[currentQ]===q.correct_answer) score++;
+    currentQ++; showQuestion();
+  };
+  c.appendChild(next);
+}
+
+function finishQuiz(){
+  clearInterval(timerInterval);
+  const c=document.getElementById("quizContainer");
+  c.innerHTML=`<h3>🎉 Quiz Completed!</h3><p>Your Score: ${score}/${quizData.length}</p>`;
+  supabaseClient.from("results").insert([{score:score}]);
+}
+
+function quitQuiz(){
+  if(confirm("Are you sure you want to exit?")){
+    document.getElementById("quizScreen").classList.add("hidden");
+    document.getElementById("homeScreen").classList.remove("hidden");
+  }
+}
+
+// ✅ Go Back
+function goBack(){
+  document.getElementById("homeScreen").classList.remove("hidden");
+  document.querySelectorAll(".hidden").forEach(()=>{});
+  document.getElementById("sectionScreen").classList.add("hidden");
+  document.getElementById("contestScreen").classList.add("hidden");
+  document.getElementById("quizScreen").classList.add("hidden");
+}
+
+// ✅ Logout
+function logoutUser(){
+  localStorage.clear();
+  alert("Logged out!");
+  location.reload();
+}
+</script>
+</body>
+</html>
