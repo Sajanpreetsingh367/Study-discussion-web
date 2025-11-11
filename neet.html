@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Study Discussion Club — NEET</title>
+<style>
+:root { --accent:#6C63FF; --accent2:#00C2A8;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Poppins",sans-serif;}
+body{
+  background:radial-gradient(circle at 50% 20%,#2a2a72 0%,#000 90%);
+  color:white;text-align:center;padding:18px;
+}
+.hidden{display:none;}
+.grid{
+  margin-top:25px;display:grid;grid-template-columns:repeat(2,1fr);gap:16px;
+}
+.card{
+  background:rgba(255,255,255,0.08);
+  padding:18px;border-radius:14px;cursor:pointer;transition:0.25s;
+}
+.card:hover{background:rgba(255,255,255,0.18);}
+.card img{width:70px;height:70px;margin-bottom:6px;}
+.logoutBtn{
+  margin-top:35px;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border:none;padding:12px 22px;border-radius:10px;color:white;font-weight:700;
+  cursor:pointer;
+}
+.backBtn{
+  position:absolute;left:12px;top:12px;border:none;
+  background:rgba(255,255,255,0.13);
+  padding:8px 14px;border-radius:10px;color:white;cursor:pointer;
+}
+#imgList img{
+  width:100%;border-radius:14px;margin-bottom:20px;
+  border:2px solid rgba(255,255,255,0.2);
+}
+</style>
+</head>
+
+<body>
+<!-- ✅ NEET HOME SCREEN -->
+<div id="homeScreen">
+  <h2 id="examName">NEET Course</h2>
+  <p>Select a learning section</p>
+
+  <div class="grid">
+    <div class="card" onclick="openSection('physics')">
+      <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+      <div>Physics</div>
+    </div>
+
+    <div class="card" onclick="openSection('chemistry')">
+      <img src="https://cdn-icons-png.flaticon.com/512/201/201572.png">
+      <div>Chemistry</div>
+    </div>
+
+    <div class="card" onclick="openSection('biology')">
+      <img src="https://cdn-icons-png.flaticon.com/512/952/952717.png">
+      <div>Biology</div>
+    </div>
+
+    <div class="card" onclick="openSection('books')">
+      <img src="https://cdn-icons-png.flaticon.com/512/942/942748.png">
+      <div>Book Summary</div>
+    </div>
+
+    <div class="card" onclick="openSection('social')">
+      <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png">
+      <div>Social Media Material</div>
+    </div>
+
+    <div class="card" onclick="openSection('hidden')">
+      <img src="https://cdn-icons-png.flaticon.com/512/1828/1828884.png">
+      <div>Hidden Topics</div>
+    </div>
+  </div>
+
+  <button class="logoutBtn" onclick="logoutUser()">Logout</button>
+</div>
+
+<!-- ✅ SECTION SCREEN -->
+<div id="sectionScreen" class="hidden">
+  <button class="backBtn" onclick="goBack()">⭠ Back</button>
+  <h2 id="secTitle">Loading...</h2>
+  <div id="imgList"></div>
+</div>
+
+<script>
+// ✅ Section Data Links
+const links = {
+  physics: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/neetphysics.json",
+  chemistry: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/neetchemistry.json",
+  biology: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/2a82ba6620749575ae169d17b1f430033e43ca4a/biology_practisequestions.json",
+  books: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/2a82ba6620749575ae169d17b1f430033e43ca4a/neet_bookssummary.json",
+  social: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/2a82ba6620749575ae169d17b1f430033e43ca4a/neetsocialmedia.json",
+  hidden: "https://raw.githubusercontent.com/avnoordeepsingh733-svg/Avnoor/main/neethiddentopics.json"
+};
+
+// ✅ Section Opening
+async function openSection(sec){
+  document.getElementById("homeScreen").classList.add("hidden");
+  document.getElementById("sectionScreen").classList.remove("hidden");
+  try {
+    let data = await fetch(links[sec]).then(r=>r.json());
+    document.getElementById("secTitle").innerText = data.title || sec.toUpperCase();
+    let list = document.getElementById("imgList");
+    list.innerHTML = "";
+    if(data.images && data.images.length>0){
+      data.images.forEach(src=>{
+        let i=document.createElement("img");
+        i.src=src;
+        list.appendChild(i);
+      });
+    } else {
+      list.innerHTML = "<p>No images found for this section.</p>";
+    }
+  } catch(e){
+    document.getElementById("secTitle").innerText = "Failed to load data.";
+  }
+}
+
+// ✅ Go Back
+function goBack(){
+  document.getElementById("homeScreen").classList.remove("hidden");
+  document.getElementById("sectionScreen").classList.add("hidden");
+}
+
+// ✅ Logout
+function logoutUser(){
+  localStorage.clear();
+  window.location.href="index.html";
+}
+</script>
+
+</body>
+</html>
