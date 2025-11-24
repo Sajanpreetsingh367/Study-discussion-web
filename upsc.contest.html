@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contest | Study Discussion Club</title>
+<style>
+:root { --accent:#6C63FF; --accent2:#00C2A8; }
+body {
+  background: radial-gradient(circle at 50% 20%, #1e1e3f 0%, #000 100%);
+  color: white; font-family: Poppins, sans-serif;
+  margin: 0; padding: 0; text-align: center;
+}
+.hidden { display:none; }
+h2 { margin-top: 15px; }
+button {
+  cursor:pointer; border:none; font-weight:600;
+  border-radius:10px; padding:12px 22px; color:white;
+}
+.primary { background:linear-gradient(90deg,#ff5858,#ff9e00); }
+.secondary { background:linear-gradient(90deg,#007bff,#00d4ff); }
+.notice {
+  background:rgba(255,255,255,0.09);
+  padding:14px; border-radius:10px;
+  margin:16px; font-size:13px; color:#e0e0e0;
+  text-align:left;
+}
+.inputBox {
+  width:80%; margin:10px auto; display:block;
+  padding:12px; border-radius:10px; border:none;
+  text-align:center;
+}
+.option {
+  background:rgba(255,255,255,0.08);
+  margin:8px 0; padding:10px; border-radius:8px;
+  cursor:pointer; transition:0.2s;
+}
+.option:hover { background:rgba(255,255,255,0.18); }
+.backBtn {
+  position:absolute; left:12px; top:12px;
+  border:none; background:rgba(255,255,255,0.13);
+  padding:8px 14px; border-radius:10px; color:white; cursor:pointer;
+}
+.progress-container {
+  width:90%; background:#333; height:12px;
+  border-radius:8px; margin:15px auto;
+}
+.progress-bar { height:100%; background:limegreen; width:0%; border-radius:8px; }
+</style>
+</head>
+<body>
+
+<!-- Contest Home Screen -->
+<div id="contestScreen">
+  <h2>🏆 Contest</h2>
+  <p>Participants Joined: <span id="joinedCount">0</span></p>
+  <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="notice">
+    Based on your scores, candidates scoring above 90 will be shortlisted.
+    Prize = Total entry fee collected - 2% platform charges.
+  </div>
+  <button class="primary" onclick="payEntry()">Pay Entry Fee ₹10</button>
+  <button class="secondary" id="joinBtn" disabled onclick="openRegistration()">Join Quiz</button>
+</div>
+
+<!-- Registration Screen -->
+<div id="registrationScreen" class="hidden">
+  <button class="backBtn" onclick="backToContest()">⭠ Back</button>
+  <h2>📝 Quiz Registration</h2>
+  <input id="fullName" class="inputBox" placeholder="Full Name" />
+  <input id="fatherName" class="inputBox" placeholder="Father's Name" />
+  <input id="mobileNumber" class="inputBox" type="tel" placeholder="Mobile Number" />
+  <div class="notice">Quiz Duration: <b>6 minutes</b>.</div>
+  <button class="secondary" onclick="saveDetails()">Submit Details</button>
+  <button class="primary" onclick="startQuiz()">Start Quiz</button>
+</div>
+
+<!-- Quiz Screen -->
+<div id="quizScreen" class="hidden">
+  <button class="backBtn" onclick="exitQuiz()">⭠ Exit</button>
+  <h2 id="timer">⏱ 06:00</h2>
+  <div id="quizBox"></div>
+</div>
+
+<!-- Result Screen -->
+<div id="resultScreen" class="hidden">
+  <h2>🎉 Quiz Completed!</h2>
+  <p id="scoreText"></p>
+  <img id="shortlistImg" class="hidden" src="https://cdn-icons-png.flaticon.com/512/992/992703.png" width="120" />
+  <button class="primary" onclick="goHome()">Back to Home</button>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const supabaseUrl = "https://zkqegvyxmtwyznizuhjts.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprcWVndnl4bXR3eXpuaXp1aGp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MjkxMDYsImV4cCI6MjA3NjIwNTEwNn0.hC01DVzpgFg_cAVBs-Q6dalvUh1oU5OJ5NxkoEVY36o";
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+let userId = null;
+let quizData = [], current = 0, score = 0;
+let timerInt, timeLeft = 360;
+
+const joinBtn = document.getElementById('joinBtn');
+const joinedCount = document.getElementById('joinedCount');
+const progressBar = document.getElementById('progressBar');
+
+// Fetch participants from Supabase
+async function updateParticipants(){
+  const { data, error } = await supabase
+    .from('contest_users')
+    .select('*');
+  if(data) {
+    joinedCount.innerText = data.length;
+    progressBar.style.width = (data.length/10000 * 100) + "%";
+  }
+}
+
+// Save Registration
+async function saveDetails() {
+  const full = fullName.value.trim();
+  const father = fatherName.value.trim();
+  const mobile = mobileNumber.value.trim();
+
+  if (!full || !father || !mobile) return alert("Fill all details");
+
+  const { data, error } = await supabase
+    .from("contest_users")
+    .insert([{ full_name: full, father_name: father, mobile }])
+    .select();
+
+  if(error) return alert("Error saving details");
+  userId = data[0].id;
+  alert("Details Saved ✔");
+  updateParticipants(); // Update participant count
+}
+
+// Save Score
+async function saveScore() {
+  if (!userId) return;
+  await supabase.from("contest_scores").insert([
+    { user_id: userId, score: score, total: quizData.length }
+  ]);
+}
+
+// UI Functions
+function payEntry(){ 
+  joinBtn.disabled = false;
+  joinBtn.style.opacity = 1;
+  alert("Payment Successful ✔"); 
+}
+function openRegistration(){ contestScreen.classList.add("hidden"); registrationScreen.classList.remove("hidden"); }
+function backToContest(){ registrationScreen.classList.add("hidden"); contestScreen.classList.remove("hidden"); }
+
+async function startQuiz(){
+  registrationScreen.classList.add("hidden");
+  quizScreen.classList.remove("hidden");
+
+  const res = await fetch("https://raw.githubusercontent.com/Sajanpreet35/Upsc-quiz-/main/upsc_quiz.json");
+  quizData = await res.json();
+
+  startTimer();
+  showQuestion();
+}
+
+function startTimer(){
+  timerInt = setInterval(() => {
+    let m = String(Math.floor(timeLeft/60)).padStart(2,'0');
+    let s = String(timeLeft%60).padStart(2,'0');
+    timer.innerHTML = `⏱ ${m}:${s}`;
+    if (timeLeft <= 0) finishQuiz();
+    timeLeft--;
+  }, 1000);
+}
+
+function showQuestion(){
+  if (current >= quizData.length) return finishQuiz();
+  let q = quizData[current];
+  quizBox.innerHTML = `<h3>Q${current+1}. ${q.question}</h3>`;
+
+  Object.entries(q.options).forEach(([key, val]) => {
+    let div = document.createElement("div");
+    div.className = "option";
+    div.innerText = `${key}. ${val}`;
+    div.onclick = () => { if (key === q.correct_answer) score++; next(); };
+    quizBox.appendChild(div);
+  });
+
+  let nextBtn = document.createElement("button");
+  nextBtn.className = "primary";
+  nextBtn.innerText = current === quizData.length - 1 ? "Finish" : "Next";
+  nextBtn.style.marginTop = "20px";
+  nextBtn.onclick = next;
+  quizBox.appendChild(nextBtn);
+}
+
+function next(){ current++; showQuestion(); }
+
+async function finishQuiz(){
+  clearInterval(timerInt);
+  quizScreen.classList.add("hidden");
+  resultScreen.classList.remove("hidden");
+  scoreText.innerText = `You scored ${score}/${quizData.length}`;
+  if (score >= 90) shortlistImg.classList.remove("hidden");
+  await saveScore();
+}
+
+function exitQuiz(){ if(confirm("Exit Quiz?")) goHome(); }
+function goHome(){ location.reload(); }
+
+// On page load
+updateParticipants();
+</script>
+</body>
+</html>
