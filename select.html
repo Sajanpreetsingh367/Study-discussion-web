@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Select Exam</title>
+<style>
+body{ background:black;color:white;text-align:center;font-family:poppins;padding:30px;}
+button{padding:14px 26px;margin:10px;font-size:18px;border:none;border-radius:10px;cursor:pointer;color:white}
+.upscBtn{background:linear-gradient(90deg,#6C63FF,#00C2A8);}
+.neetBtn{background:linear-gradient(90deg,#ff5858,#ff9e00);}
+</style>
+</head>
+
+<body>
+
+<h2>Select Your Exam</h2>
+<p>Choose the exam you are preparing for</p>
+
+<button class="upscBtn" onclick="openExam('UPSC')">UPSC</button>
+<button class="neetBtn" onclick="openExam('NEET')">NEET</button>
+
+<script>
+function openExam(exam){
+  localStorage.setItem("selectedExam", exam);
+
+  if(exam === "NEET"){
+    window.location.href = "neet.html";   // NEET Home page
+  } else {
+    window.location.href = "home.html";   // UPSC Home page
+  }
+}
+</script>
+
+</body>
+</html>
