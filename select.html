@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Select Exam</title>
+<style>
+  body {
+    font-family: "Poppins", sans-serif;
+    background: radial-gradient(circle at 50% 20%, #2a2a72 0%, #000 90%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    text-align: center;
+  }
+  h1 { margin-bottom: 20px; }
+  .exam-btn {
+    background: linear-gradient(90deg, #6C63FF, #00C2A8);
+    border: none;
+    padding: 14px 28px;
+    margin: 10px;
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  .exam-btn:hover {
+    opacity: 0.85;
+    transform: scale(1.05);
+  }
+</style>
+</head>
+<body>
+
+<h1>Select Your Exam</h1>
+<button class="exam-btn" onclick="selectExam('UPSC')">UPSC</button>
+<button class="exam-btn" onclick="selectExam('NEET')">NEET</button>
+
+<script>
+function selectExam(exam){
+  // Save selected exam in localStorage
+  localStorage.setItem('selectedExam', exam);
+  // Redirect to home.html
+  window.location.href = 'home.html';
+}
+</script>
+
+</body>
+</html>
