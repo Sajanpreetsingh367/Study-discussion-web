@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Book Summary | Study Discussion Club</title>
+
+<style>
+body {
+  margin:0;
+  padding:0;
+  background:#121212;
+  color:white;
+  font-family:Poppins, sans-serif;
+  text-align:center;
+}
+
+.header {
+  font-size:26px;
+  font-weight:700;
+  padding:20px 0 10px 0;
+}
+
+.credit {
+  font-size:13px;
+  opacity:0.8;
+  margin-bottom:20px;
+}
+
+.book-card {
+  background:rgba(255,255,255,0.1);
+  width:90%;
+  margin:20px auto;
+  padding:20px;
+  border-radius:14px;
+  text-align:left;
+  line-height:1.6;
+}
+
+.book-title {
+  font-size:20px;
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+.book-author {
+  font-size:14px;
+  opacity:0.85;
+  margin-bottom:12px;
+}
+
+.book-summary {
+  font-size:15px;
+  opacity:0.9;
+  white-space:pre-line;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">📚 Study Discussion Club</div>
+<div class="credit">Prepared by Sajan</div>
+
+<div id="booksContainer"></div>
+
+<script>
+// Load JSON books file
+async function loadBooks(){
+  try {
+    // 👉 अब यह तुम्हारा JSON लिंक है
+    const res = await fetch("https://raw.githubusercontent.com/Sajanpreet35/Vacubaluray-/main/books%20Summary%20knowledge.json");
+    const books = await res.json();
+
+    const container = document.getElementById("booksContainer");
+    container.innerHTML = "";
+
+    books.forEach(book => {
+      container.innerHTML += `
+        <div class="book-card">
+          <div class="book-title">${book.title}</div>
+          <div class="book-author">by ${book.author}</div>
+          <div class="book-summary">${book.summary}</div>
+        </div>
+      `;
+    });
+
+  } catch (e) {
+    alert("Error loading book data");
+  }
+}
+
+loadBooks();
+</script>
+
+</body>
+</html>
